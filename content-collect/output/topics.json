@@ -1,0 +1,169 @@
+{
+  "collected_at": "2026-06-02T18:11:58.999134",
+  "date": "2026-06-02",
+  "brand": {
+    "name": "AI行业",
+    "industry": "人工智能",
+    "keywords": "AI,人工智能,大模型,机器学习",
+    "target_audience": "AI行业从业者和爱好者"
+  },
+  "sources_used": [
+    {
+      "source": "36氪快讯",
+      "status": "ok",
+      "count": 12
+    },
+    {
+      "source": "爱范儿",
+      "status": "ok",
+      "count": 10
+    },
+    {
+      "source": "DuckDuckGo",
+      "status": "used"
+    }
+  ],
+  "topics": [
+    {
+      "title": "英特尔在Computex发布多项AI创新成果",
+      "summary": "",
+      "url": "https://www.36kr.com/newsflashes/3835864864093317",
+      "source": "36氪快讯",
+      "relevance": 3
+    },
+    {
+      "title": "联发科承诺扩大招聘，以助力向新的人工智能业务领域推进",
+      "summary": "",
+      "url": "https://www.36kr.com/newsflashes/3835830434919552",
+      "source": "36氪快讯",
+      "relevance": 3
+    },
+    {
+      "title": "香港证监会敦促持牌机构防范AI驱动的新兴网络威胁",
+      "summary": "",
+      "url": "https://www.36kr.com/newsflashes/3835840134116744",
+      "source": "36氪快讯",
+      "relevance": 3
+    },
+    {
+      "title": "Anthropic 抢跑 IPO，AI 巨头接连秘密上市，背后是怎样的攻防战",
+      "summary": "",
+      "url": "https://www.ifanr.com/1667829",
+      "source": "爱范儿",
+      "relevance": 3
+    },
+    {
+      "title": "制糖工厂发布 AI 小电拼 Mirror：琥珀屏、双支架与可拼拆设计，重构桌面能源设备",
+      "summary": "",
+      "url": "https://www.ifanr.com/1667822",
+      "source": "爱范儿",
+      "relevance": 3
+    },
+    {
+      "title": "早报｜OpenAI官宣进军机器人领域/AI误把文物照片上架，闲鱼致歉/天涯社区重启首日被挤爆",
+      "summary": "",
+      "url": "https://www.ifanr.com/1667792",
+      "source": "爱范儿",
+      "relevance": 3
+    },
+    {
+      "title": "英伟达掀桌，Windows 终于迎来真 AI PC",
+      "summary": "",
+      "url": "https://www.ifanr.com/1667641",
+      "source": "爱范儿",
+      "relevance": 3
+    },
+    {
+      "title": "制糖工厂发布 AI 小电拼 Mirror：全球首款智能体电源，支持 AI Agent 原生接入",
+      "summary": "",
+      "url": "https://www.ifanr.com/1667606",
+      "source": "爱范儿",
+      "relevance": 3
+    },
+    {
+      "title": "任务成本仅为Claude Opus 4.6 1/9，阶跃刷新Flash模型效率",
+      "summary": "",
+      "url": "https://www.ifanr.com/1667680",
+      "source": "爱范儿",
+      "relevance": 2
+    },
+    {
+      "title": "上交所宇树科技股份有限公司IPO审核状态变更为提交注册",
+      "summary": "",
+      "url": "https://www.36kr.com/newsflashes/3835870476416131",
+      "source": "36氪快讯",
+      "relevance": 0
+    },
+    {
+      "title": "报道：软银拟参与Agile Robots的8亿美元融资轮",
+      "summary": "",
+      "url": "https://www.36kr.com/newsflashes/3835853983888774",
+      "source": "36氪快讯",
+      "relevance": 0
+    },
+    {
+      "title": "振华股份：向不特定对象发行可转换公司债券申请获上交所审核通过",
+      "summary": "",
+      "url": "https://www.36kr.com/newsflashes/3835853447509376",
+      "source": "36氪快讯",
+      "relevance": 0
+    },
+    {
+      "title": "中煤能源集团在武汉成立新能源公司，注册资本6500万",
+      "summary": "",
+      "url": "https://www.36kr.com/newsflashes/3835823487513993",
+      "source": "36氪快讯",
+      "relevance": 0
+    },
+    {
+      "title": "威龙股份：股东杨光第及其一致行动人拟合计减持不超3%股份",
+      "summary": "",
+      "url": "https://www.36kr.com/newsflashes/3835847090566278",
+      "source": "36氪快讯",
+      "relevance": 0
+    },
+    {
+      "title": "红星发展：股价异常波动，一季度营收、净利润双降",
+      "summary": "",
+      "url": "https://www.36kr.com/newsflashes/3835845370983555",
+      "source": "36氪快讯",
+      "relevance": 0
+    },
+    {
+      "title": "好达电子科创板IPO审核状态变更为“已受理”",
+      "summary": "",
+      "url": "https://www.36kr.com/newsflashes/3835841517827205",
+      "source": "36氪快讯",
+      "relevance": 0
+    },
+    {
+      "title": "欧元区5月通胀率预计升至3.2%",
+      "summary": "",
+      "url": "https://www.36kr.com/newsflashes/3835837096916097",
+      "source": "36氪快讯",
+      "relevance": 0
+    },
+    {
+      "title": "赛富时对Anthropic持股市值升至50亿美元",
+      "summary": "",
+      "url": "https://www.36kr.com/newsflashes/3835832762676615",
+      "source": "36氪快讯",
+      "relevance": 0
+    },
+    {
+      "title": "华为发布 nova 16 系列：2 亿主摄，红枫影像，还有十年的答案",
+      "summary": "",
+      "url": "https://www.ifanr.com/1667771",
+      "source": "爱范儿",
+      "relevance": 0
+    },
+    {
+      "title": "是用户不选择纯电大五座吗？肯定不是，还是因为没有好的产品供应。",
+      "summary": "",
+      "url": "https://www.ifanr.com/dasheng/1664593",
+      "source": "爱范儿",
+      "relevance": 0
+    }
+  ],
+  "total_raw": 22
+}

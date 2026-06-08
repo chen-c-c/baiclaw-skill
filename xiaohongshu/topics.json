@@ -1,0 +1,30 @@
+{
+  "brand": {
+    "name": "AI行业资讯",
+    "industry": "科技资讯",
+    "target_audience": "科技爱好者"
+  },
+  "topics": [
+    {
+      "title": "英伟达推动Windows AI PC",
+      "source": "爱范儿",
+      "summary": "英伟达在Windows平台推动AI PC发展，标志着Windows生态正式进入AI PC时代。",
+      "url": "https://www.ifanr.com/1667641",
+      "relevance": 3
+    },
+    {
+      "title": "全球首款AI智能体电源发布",
+      "source": "爱范儿",
+      "summary": "全球首款支持AI Agent原生接入的智能电源产品——AI小电拼Mirror正式发布。",
+      "url": "https://www.ifanr.com/1667606",
+      "relevance": 3
+    },
+    {
+      "title": "黄仁勋：工程师不烧Token我会气炸",
+      "source": "爱范儿",
+      "summary": "英伟达CEO黄仁勋近日表示工程师不烧Token我会气炸，反映AI行业对算力的巨大需求。",
+      "url": "https://www.ifanr.com/1667559",
+      "relevance": 3
+    }
+  ]
+}

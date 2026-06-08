@@ -1,0 +1,169 @@
+{
+  "collected_at": "2026-06-01T15:40:59.171750",
+  "date": "2026-06-01",
+  "brand": {
+    "name": "AI行业观察",
+    "industry": "人工智能",
+    "keywords": "AI,人工智能,大模型,机器学习,AI应用,行业动态",
+    "target_audience": "AI从业者、科技爱好者、企业决策者"
+  },
+  "sources_used": [
+    {
+      "source": "36氪快讯",
+      "status": "ok",
+      "count": 12
+    },
+    {
+      "source": "爱范儿",
+      "status": "ok",
+      "count": 10
+    },
+    {
+      "source": "DuckDuckGo",
+      "status": "used"
+    }
+  ],
+  "topics": [
+    {
+      "title": "Robo.ai宣布完成对Neurovia AI全资收购",
+      "summary": "",
+      "url": "https://www.36kr.com/newsflashes/3834302783514497",
+      "source": "36氪快讯",
+      "relevance": 3
+    },
+    {
+      "title": "耀客传媒等成立AI新公司，注册资本100万",
+      "summary": "",
+      "url": "https://www.36kr.com/newsflashes/3834273572792192",
+      "source": "36氪快讯",
+      "relevance": 3
+    },
+    {
+      "title": "鸿海和法国公司Bull将合作生产AI和云基础设施",
+      "summary": "",
+      "url": "https://www.36kr.com/newsflashes/3834259289564807",
+      "source": "36氪快讯",
+      "relevance": 3
+    },
+    {
+      "title": "英伟达掀桌，Windows 终于迎来真 AI PC",
+      "summary": "",
+      "url": "https://www.ifanr.com/1667641",
+      "source": "爱范儿",
+      "relevance": 3
+    },
+    {
+      "title": "制糖工厂发布 AI 小电拼 Mirror：全球首款智能体电源，支持 AI Agent 原生接入",
+      "summary": "",
+      "url": "https://www.ifanr.com/1667606",
+      "source": "爱范儿",
+      "relevance": 3
+    },
+    {
+      "title": "早报｜曝苹果用谷歌AI训练自己模型/黄仁勋：工程师不烧Token我会气炸/工信部：动力电池进入规模化退役阶段",
+      "summary": "",
+      "url": "https://www.ifanr.com/1667559",
+      "source": "爱范儿",
+      "relevance": 3
+    },
+    {
+      "title": "盘古智能在南京成立新科技公司，注册资本1000万",
+      "summary": "",
+      "url": "https://www.36kr.com/newsflashes/3834283809204104",
+      "source": "36氪快讯",
+      "relevance": 2
+    },
+    {
+      "title": "蚂蚁集团旗下公司等入股光轮智能",
+      "summary": "",
+      "url": "https://www.36kr.com/newsflashes/3834266511861632",
+      "source": "36氪快讯",
+      "relevance": 2
+    },
+    {
+      "title": "早报｜曝苹果眼镜明年底发布/英伟达首款自研芯片PC本周亮相/特斯拉推出Model Y原厂手动遮阳帘",
+      "summary": "",
+      "url": "https://www.ifanr.com/1667599",
+      "source": "爱范儿",
+      "relevance": 2
+    },
+    {
+      "title": "vivo S60 体验：手机，就该少想多用",
+      "summary": "",
+      "url": "https://www.ifanr.com/1667541",
+      "source": "爱范儿",
+      "relevance": 2
+    },
+    {
+      "title": "2025爆款AI创意短视频制作流程：正确使用AI图像+视频生成模型",
+      "summary": "Jan 29, 2025 ... 2025爆款AI创意短视频制作流程：正确使用AI图像+视频生成模型，日赚500美元. 2.6K views · 1 year ago ...more. 小薇官方频道. 69.7K. Subscribe.",
+      "url": "https://www.youtube.com/watch?v=FII-vP3YtG0",
+      "source": "DuckDuckGo",
+      "relevance": 1
+    },
+    {
+      "title": "AI winter - Wikipedia",
+      "summary": "... around the world began to develop and deploy expert systems and by 1985 they were spending over a billion dollars on AI, most of it to in-house AI ...",
+      "url": "https://en.wikipedia.org/wiki/AI_winter",
+      "source": "DuckDuckGo",
+      "relevance": 1
+    },
+    {
+      "title": "AI.Gov | President Trump's AI Strategy and Action Plan",
+      "summary": "America’s AI Action Plan has three policy pillars – Accelerating Innovation, Building AI Infrastructure, and Leading International Diplomacy ...",
+      "url": "https://www.ai.gov/",
+      "source": "DuckDuckGo",
+      "relevance": 1
+    },
+    {
+      "title": "AI 2027",
+      "summary": "Eli Lifland co-founded AI Digest , did AI robustness research , and ranks on the RAND Forecasting Initiative all-time leaderboard.",
+      "url": "https://ai-2027.com/",
+      "source": "DuckDuckGo",
+      "relevance": 1
+    },
+    {
+      "title": "获取小红书热榜/Fetch Xiaohongshu hot list - TikHub.io API Docs",
+      "summary": "获取搜索页热搜词/Get search page hot topics. Weibo-Web-V2-API. 检查微博是否 ... 微博智能搜索/Weibo AI Search · 微博AI搜索内容扩展/Weibo AI Search Content ...",
+      "url": "https://docs.tikhub.io/321103382e0",
+      "source": "DuckDuckGo",
+      "relevance": 1
+    },
+    {
+      "title": "10分钟打造小红书？| 42个Cursor神级提示词（全网最新最全） - 53AI",
+      "summary": "Sep 17, 2024 ... - 当需要工具时，优先考虑[工具节点](https://langchain-ai.github.io/langgraph/how-tos/tool-calling/)。 - 在适用的情况下，将Tavily作为主要搜索工具（在 ...",
+      "url": "https://www.53ai.com/news/tishicijiqiao/2024091769012.html",
+      "source": "DuckDuckGo",
+      "relevance": 1
+    },
+    {
+      "title": "zhjiang22/openclaw-xhs - GitHub",
+      "summary": "让 OpenClaw 读懂你的小红书 — MCP 集成 + 热点跟踪 + 个人 ... AI-powered toolkit for Xiaohongshu (小红书 / RedNote) that turns your favorite posts into AI memory.",
+      "url": "https://github.com/zhjiang22/openclaw-xhs",
+      "source": "DuckDuckGo",
+      "relevance": 1
+    },
+    {
+      "title": "赛力斯字节合作新品牌细节曝光：将推纯电、增程双动力",
+      "summary": "",
+      "url": "https://www.36kr.com/newsflashes/3834308952237953",
+      "source": "36氪快讯",
+      "relevance": 0
+    },
+    {
+      "title": "国家标准委等六部门发布一批标准实施效果评估方法",
+      "summary": "",
+      "url": "https://www.36kr.com/newsflashes/3834300267964291",
+      "source": "36氪快讯",
+      "relevance": 0
+    },
+    {
+      "title": "无忧传媒增资至约7634万",
+      "summary": "",
+      "url": "https://www.36kr.com/newsflashes/3834295734282115",
+      "source": "36氪快讯",
+      "relevance": 0
+    }
+  ],
+  "total_raw": 34
+}
