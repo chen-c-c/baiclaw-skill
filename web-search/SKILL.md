@@ -1,8 +1,8 @@
 ---
 name: web-search
-description: Real-time web search. Use this skill when you need current information, latest documentation, recent news, or any data beyond your knowledge cutoff.
+description: Real-time web search using Playwright-controlled browser. Use this skill when you need current information, latest documentation, recent news, or any data beyond your knowledge cutoff (January 2025).
 official: true
-version: 2.0.0
+version: 1.0.2
 ---
 
 # Web Search Skill
@@ -11,55 +11,32 @@ version: 2.0.0
 
 Use the web-search skill when you need:
 
-- **Current information** - Events, news, or data after your knowledge cutoff
-- **Latest documentation** - Up-to-date framework/library docs
+- **Current information** - Events, news, or data after January 2025
+- **Latest documentation** - Up-to-date framework/library docs (React 19, Next.js 15, etc.)
 - **Real-time data** - Stock prices, weather, sports scores, etc.
 - **Fact verification** - Check current status of projects, companies, or technologies
 - **Recent discussions** - Community opinions, GitHub issues, Stack Overflow answers
+- **Product comparisons** - Latest reviews and comparisons
+- **Troubleshooting** - Search for specific error messages or solutions
 
 **Examples of when to use:**
 - User: "What are the new features in React 19?"
 - User: "Search for the latest Next.js App Router documentation"
 - User: "What's the current status of the Rust async project?"
+- User: "Find recent discussions about Vue 3 performance"
 
 ## How It Works
 
-This skill uses the `http_get` tool to fetch search results from a search engine API or perform direct HTTP lookups.
-
-## Steps
-
-1. Receive the search query from the user's request (in the `query` argument).
-2. Build a search URL. Use DuckDuckGo HTML endpoint:
-   `https://html.duckduckgo.com/html/?q=<URL-encoded-query>`
-3. Call the `http_get` tool with that URL.
-4. Parse the returned HTML: extract visible text around `<a class="result__a">` and `<a class="result__snippet">` tags.
-5. Return a Markdown-formatted summary of the top results including titles, URLs, and snippets.
-
-## Tool Usage
-
-To search the web, call the `http_get` tool:
-
-```json
-{"tool": "http_get", "arguments": {"url": "https://html.duckduckgo.com/html/?q=YOUR+QUERY"}}
 ```
-
-## Output Format
-
-Return results as:
-
+┌──────────┐    Bash    ┌─────────┐    HTTP    ┌──────────────┐    CDP    ┌────────┐
+│  Claude  │───────────▶│ CLI.sh  │───────────▶│ Bridge Server│──────────▶│ Chrome │
+│          │            │         │            │ (localhost)  │ Playwright│        │
+└──────────┘            └─────────┘            └──────────────┘            └────────┘
+                                                      │
+                                                  ▼
+                                             Google/Bing Search
+                                                Extract Results
 ```
-## Search Results: <query>
-
-1. **<title>**
-   URL: <url>
-   <snippet>
-
-2. **<title>**
-   ...
-```
-
-Summarise the most relevant findings in plain language after the structured list.
-
 
 **Architecture:**
 1. **CLI Script** - Simple bash interface for Claude

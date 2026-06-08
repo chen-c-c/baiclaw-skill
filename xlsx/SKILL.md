@@ -65,9 +65,11 @@ Unless otherwise stated by the user or existing template
 
 ## Overview
 
-A user may ask you to create, edit, or analyze the contents of an .xlsx file.
-Use `python_run` (with `install_packages: "openpyxl pandas"`) to execute scripts, and `write_file` to save them first.
-All script paths should be relative to `SKILL_DIR` (provided automatically in the environment header).
+A user may ask you to create, edit, or analyze the contents of an .xlsx file. You have different tools and workflows available for different tasks.
+
+## Important Requirements
+
+**LibreOffice Required for Formula Recalculation**: You can assume LibreOffice is installed for recalculating formula values using the `recalc.py` script. The script automatically configures LibreOffice on first run
 
 ## Reading and analyzing data
 
@@ -126,11 +128,15 @@ sheet['D20'] = '=AVERAGE(D2:D19)'
 This applies to ALL calculations - totals, percentages, ratios, differences, etc. The spreadsheet should be able to recalculate when source data changes.
 
 ## Common Workflow
-1. **Choose library**: pandas for bulk data operations, openpyxl for formulas/formatting
-2. **Write Python script**: use `write_file` to save a `.py` file in the output directory
-3. **Execute**: use `python_run` with `install_packages: "openpyxl pandas"` and `workdir` set to the output directory
-4. **Verify formulas (MANDATORY IF USING FORMULAS)**: run `recalc.py` via `python_run` with `script: "$SKILL_DIR/recalc.py"` passing the output file path as `args`
-5. **Verify and fix any errors**: 
+1. **Choose tool**: pandas for data, openpyxl for formulas/formatting
+2. **Create/Load**: Create new workbook or load existing file
+3. **Modify**: Add/edit data, formulas, and formatting
+4. **Save**: Write to file
+5. **Recalculate formulas (MANDATORY IF USING FORMULAS)**: Use the recalc.py script
+   ```bash
+   python recalc.py output.xlsx
+   ```
+6. **Verify and fix any errors**: 
    - The script returns JSON with error details
    - If `status` is `errors_found`, check `error_summary` for specific error types and locations
    - Fix the identified errors and recalculate again
@@ -198,20 +204,23 @@ wb.save('modified.xlsx')
 
 ## Recalculating formulas
 
-Excel files created or modified by openpyxl store formulas as strings — calculated values are written by Excel when the file is opened. Use `recalc.py` (in `SKILL_DIR`) to verify formula correctness without LibreOffice:
+Excel files created or modified by openpyxl contain formulas as strings but not calculated values. Use the provided `recalc.py` script to recalculate formulas:
 
-```python
-# via python_run
-# script: "<SKILL_DIR>/recalc.py"
-# args:   "<output_file.xlsx>"
-# workdir: output directory
+```bash
+python recalc.py <excel_file> [timeout_seconds]
+```
+
+Example:
+```bash
+python recalc.py output.xlsx 30
 ```
 
 The script:
-- Uses the `formulas` Python library for in-memory evaluation when available (`pip install formulas`)
-- Falls back to scanning cached cell values with openpyxl
-- Scans all cells for Excel errors (#REF!, #DIV/0!, etc.)
-- Returns JSON — no LibreOffice required
+- Automatically sets up LibreOffice macro on first run
+- Recalculates all formulas in all sheets
+- Scans ALL cells for Excel errors (#REF!, #DIV/0!, etc.)
+- Returns JSON with detailed error locations and counts
+- Works on both Linux and macOS
 
 ## Formula Verification Checklist
 
@@ -240,10 +249,9 @@ The script returns JSON with error details:
 ```json
 {
   "status": "success",           // or "errors_found"
-  "total_errors": 0,
-  "total_formulas": 42,
-  "engine": "formulas",          // "formulas" or "openpyxl-scan"
-  "error_summary": {
+  "total_errors": 0,              // Total error count
+  "total_formulas": 42,           // Number of formulas in file
+  "error_summary": {              // Only present if errors found
     "#REF!": {
       "count": 2,
       "locations": ["Sheet1!B5", "Sheet1!C10"]

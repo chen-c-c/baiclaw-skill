@@ -1,103 +1,84 @@
 ---
 name: "xiaohongshu"
+version: 1.0.0
 description: |
   Create and publish Xiaohongshu (小红书) image-text posts end-to-end.
-  Takes a topics JSON from content-collect (or manually created), generates content
-  instructions for the Agent, then publishes via Playwright browser automation.
+  Automatically collects today's trending topics, calls Claude/DeepSeek API
+  to generate draft content (titles, article, hashtags), renders carousel images,
+  then publishes via Playwright.
   Activated when users or scheduled tasks mention "生成小红书内容", "写小红书",
-  "发布小红书", "generate xiaohongshu post", "publish xiaohongshu", "发布笔记",
-  or after content-collect has produced a topics JSON file.
+  "发布小红书", "generate xiaohongshu post", "publish xiaohongshu", "发布笔记".
 
   首次发布时会弹出浏览器请用户手动登录，登录成功后 Cookie 保存到本地，后续自动复用。
   Cookie 失效时返回 cookieExpired: true，需提示用户在管理后台更新 Cookie。
-official: false
 ---
 
 # xiaohongshu Skill
 
-完整的小红书图文生成 + 发布流水线，分两个阶段：
+完整的小红书图文生成 + 发布流水线，共两个阶段：
 
 > ⚠️ **严格规则（必须遵守）**
 > - **禁止**自行编写任何 Python/JS 脚本来生成图片、写文件、处理 JSON
 > - 所有步骤必须通过调用下方指定的脚本完成，不得绕过
-> - draft.json 直接用 `Write` 工具写入，不要写临时脚本来生成它
 > - 图片生成**只能**调用 `render_carousel.py`，禁止用 Pillow/PIL 或其他方式自行绘图
+> - `generate.py` 已内置 LLM 调用，**禁止**让 Agent 自行生成标题/正文/标签
+
+## 环境要求
+
+```bash
+pip install anthropic openai playwright
+```
+
+`generate.py` 自动检测可用模型，无需手动配置 API Key：
+- 有 `LOBSTER_APIKEY_DEEPSEEK` → 调用 DeepSeek（Agent 配置的模型自动注入）
+- 有 `ANTHROPIC_API_KEY` → 调用 Claude
+- 可选 `ANTHROPIC_MODEL` 覆盖 Claude 模型 ID
+- 可选 `BAICLAW_TEMP_DIR` — 临时文件根目录（默认系统 temp）
 
 ## Skill 路径（初始化一次）
 
 ```bash
 export SKILLS_ROOT="${LOBSTERAI_SKILLS_ROOT:-${SKILLS_ROOT:-$HOME/Library/Application Support/LobsterAI/SKILLs}}"
 export XHS_GENERATE_SCRIPT="$SKILLS_ROOT/xiaohongshu/scripts/generate.py"
-export XHS_RENDER_SCRIPT="$SKILLS_ROOT/xiaohongshu/scripts/render_carousel.py"
 export XHS_PUBLISH_SCRIPT="$SKILLS_ROOT/xiaohongshu/scripts/publish.py"
-export CONTENT_COLLECT_SCRIPT="$SKILLS_ROOT/content-collect/scripts/collect.py"
+export XHS_CHECK_PUBLISH_SCRIPT="$SKILLS_ROOT/xiaohongshu/scripts/check_and_publish.py"
 ```
 
 ---
 
-## 阶段一：生成内容指令
+## 执行规则（必须遵守，优先级高于下方所有说明）
 
-```bash
-python "$XHS_GENERATE_SCRIPT" \
-  --topics-json /tmp/topics-{taskRunId}.json \
-  --brand-name "品牌名称" \
-  --industry "行业" \
-  --tone "活泼/专业/温暖" \
-  --selling-points "核心卖点（逗号分隔）" \
-  --forbidden-words "违禁词1,违禁词2" \
-  --image-mode temp \
-  --image-path "/tmp/title.png" \
-  --output /tmp/content-brief-{taskRunId}.json
-```
-
-**参数说明：**
-- `--topics-json`: collect.py 输出的 topics JSON 路径
-- `--brand-name`/`--industry`：覆盖 topics JSON 中的值（可选）
-- `--image-mode`: `temp`（默认本地图片） | `local`（同temp） | `cloud`（预留）
-- `--image-path`: 封面图本地路径
-- `--output`: 将结果写入文件（不指定则输出到 stdout）
-
-**输出示例：**
-
-```json
-{
-  "instruction": "你是一位资深小红书运营专家...请严格按照以下要求生成..."
-}
-```
-
-### Agent 处理步骤
-
-收到 `instruction` 后，Agent 应：
-
-1. 按 `instruction` 生成 3 个备选标题（各不同情绪钩子，不超过 20 字）
-2. 正文 **500-800 字**（开头共鸣 → 中间干货/故事带品牌 → 结尾引导互动），字数不足须补足
-3. 5-8 个话题标签（`#` 开头）
-4. 使用 `Write` 工具直接将结果写入 draft JSON 文件，**禁止写临时 Python 脚本来生成 JSON**
-
-**draft JSON 格式（images 先留空数组，步骤3渲染后再填入）：**
-
-```json
-{
-  "titles": ["标题1（首选）", "标题2", "标题3"],
-  "article": "正文内容（500-800字）",
-  "topics": ["#话题1", "#话题2", "#话题3"],
-  "images": []
-}
-```
+1. **draft_path 必须从 generate.py 的 stdout 取**：generate.py 最后一行输出 JSON `{"draft_path": "...", "brief_path": "...", "review_id": "..."}`，**禁止使用任何历史路径或自行拼接路径**。generate.py 已内置热点采集、轮播图渲染和提交审核，无需 Agent 额外调用。
 
 ---
 
-## 阶段二：发布笔记
+## 阶段一：生成内容
 
 ```bash
-python "$XHS_PUBLISH_SCRIPT" \
-  --draft-json /tmp/draft-{taskRunId}.json \
-  --account-id "acc_xxxxx" \
-  --headless true
+python "$XHS_GENERATE_SCRIPT"
 ```
 
-**参数：**
-- `--headless`: `true`（无头，默认） | `false`（可见浏览器，调试用）
+**无需任何参数**，generate.py 自动采集今日热点、调用 LLM 生成内容、渲染轮播图、提交审核。
+
+stdout 最后一行输出（必须解析此 JSON 获取 draft_path）：
+```json
+{"draft_path": "C:\\...\\runs\\20260509-142340\\draft.json", "brief_path": "...", "review_id": "..."}
+```
+
+> 品牌、语调、卖点、违禁词全部自动从 SQLite 读取，无需传参。
+
+generate.py 内部自动完成轮播图渲染和提交审核，stdout 输出中包含 `review_id`，告知用户「内容已提交审核，请在管理后台查看」。
+
+---
+
+## 阶段二：检查审核结果并发布（定时任务，每 5 分钟）
+
+```bash
+python "$XHS_CHECK_PUBLISH_SCRIPT"
+```
+
+> 该脚本由 BaiClaw 定时任务触发（cron `*/5 * * * *`），无需 Agent 手动调用。
+> 拉取 status=approved 的文章 → 还原图片和 draft → 调用 publish.py → 回写发布结果。
 
 ### Cookie 初始化（首次使用）
 
@@ -121,39 +102,12 @@ Agent 收到 `cookieExpired: true` 时应：
 
 ---
 
-## 完整流水线（四步）
+## 完整流水线（一步）
 
 ```bash
-# 步骤1：采集热点素材
-python "$CONTENT_COLLECT_SCRIPT" \
-  --brand-name "白泽AI" --industry "AI工具" --keywords "AI助手,效率工具" \
-  --target-audience "职场白领" --output /tmp/topics-001.json
+# 一步完成：自动采集热点 → 生成内容 → 渲染轮播图 → 提交审核，输出 review_id
+python "$XHS_GENERATE_SCRIPT"
 
-# 步骤2：生成内容指令（Agent 据此生成 draft JSON）
-python "$XHS_GENERATE_SCRIPT" \
-  --topics-json /tmp/topics-001.json --output /tmp/content-brief-001.json
-
-# Agent 分析 instruction → 将标题/正文/标签写入 /tmp/draft-001.json
-
-# 步骤3：渲染 6 张轮播封面图
-python "$XHS_RENDER_SCRIPT" \
-  --draft-json /tmp/draft-001.json \
-  --brand "白泽AI" \
-  --output-dir /tmp/carousel-001
-
-# render_carousel.py 输出 JSON，其中 images 字段为 6 张 PNG 路径
-# Agent 需将 images 字段更新回 draft-001.json，再执行步骤4
-
-# 步骤4：发布
-python "$XHS_PUBLISH_SCRIPT" \
-  --draft-json /tmp/draft-001.json --account-id "acc_01" --headless true
+# 审核通过后由定时任务自动发布（无需手动调用）：
+# python "$XHS_CHECK_PUBLISH_SCRIPT"
 ```
-
-**步骤3 → 步骤4 衔接说明**
-
-`render_carousel.py` 的输出示例：
-```json
-{ "images": ["/tmp/carousel-001/01_cover.png", "...06_cta.png"], "count": 6 }
-```
-
-Agent 收到后，将 `images` 数组写回 `draft-001.json` 的 `images` 字段，再调用 publish.py 发布（publish.py 会将这 6 张图依次上传）。

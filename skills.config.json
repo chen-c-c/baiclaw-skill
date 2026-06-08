@@ -19,6 +19,7 @@
     "content-planner": { "order": 120, "enabled": true },
     "article-writer": { "order": 121, "enabled": true },
     "daily-trending": { "order": 122, "enabled": true },
+    "wechat-article-crawler": { "order": 123, "enabled": true },
     "local-tools": { "order": 200, "enabled": true },
     "weather": { "order": 210, "enabled": true },
     "imap-smtp-email": { "order": 211, "enabled": true },
@@ -27,8 +28,15 @@
     "films-search": { "order": 222, "enabled": true },
     "music-search": { "order": 223, "enabled": true },
     "technology-news-search": { "order": 224, "enabled": false },
+    "jrtt-news-search": { "order": 225, "enabled": true },
     "youdaonote": { "order": 298, "enabled": true },
     "skill-vetter": { "order": 299, "enabled": true },
-    "skill-creator": { "order": 300, "enabled": true }
+    "skill-creator": { "order": 300, "enabled": true },
+    "xiaohongshu": { "order": 410, "enabled": true },
+    "xiaohongshu-reply": { "order": 411, "enabled": true },
+    "douyin": { "order": 412, "enabled": true },
+    "wechat-channels": { "order": 413, "enabled": true },
+    "zhihu": { "order": 414, "enabled": true },
+    "toutiao": { "order": 415, "enabled": true }
   }
 }

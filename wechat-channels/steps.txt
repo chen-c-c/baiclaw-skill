@@ -1,0 +1,12 @@
+1.使用cookie登录微信视频号，进入首页：https://channels.weixin.qq.com/platform
+2.点击图文按钮，进入发布图文页面：https://channels.weixin.qq.com/platform/post/finderNewLifePostList
+<li data-v-2a16615a="" class="finder-ui-desktop-sub-menu__item"><a active-class="finder-ui-desktop-menu__link_current" href="javascript:;" class="finder-ui-desktop-menu__link finder-ui-desktop-menu__link_current finder-ui-desktop-menu__only-icon"><div class="finder-ui-desktop-menu__icon_logo" style="background-image: url(&quot;&quot;);"></div><div class="finder-ui-desktop-menu__active_icon_logo" style="background-image: url(&quot;&quot;);"></div><span class="finder-ui-desktop-menu__link__inner"><span class="finder-ui-desktop-menu__name"><span>图文</span><!----></span></span><!----></a><!----></li>
+3.点击“发布图文”按钮，进入图文编辑发布页面：https://channels.weixin.qq.com/platform/post/finderNewLifeCreate
+<button type="button" class="weui-desktop-btn weui-desktop-btn_primary">发表图文 </button>
+4.点击发布图片动态按钮，在弹出得文件选择对话框中选择图片
+<div class="upload-content"><div class="center"><span class="add-icon weui-icon-outlined-add"></span><div class="upload-tip"><span>发布图片动态，可上传最多18张图片，单张不超过20MB，支持常见图片格式。</span><div class="weui-desktop-popover__wrp info-popover"><span class="weui-desktop-popover__target"><span class="info-icon weui-icon-outlined-info"></span></span> <div class="weui-desktop-popover weui-desktop-popover_pos-up-center" style="display: none;"><div class="weui-desktop-popover__inner"><!----> <div class="weui-desktop-popover__desc">发布图片动态，可上传最多18张图片，单张不超过20MB，支持常见图片格式。</div> <!----></div></div></div></div></div></div>
+5.填写图文标题：<input type="text" name="" placeholder="填写标题, 22个字符内" class="weui-desktop-form__input">
+6.添加文件内容：
+<div class="form-item-body"><div class="post-desc-box"><div contenteditable="" data-placeholder="添加描述, 1000个字符内" class="input-editor"></div><!----><div class="quick-btns"><div class="finder-tag-wrap btn"><div class="tag-inner">#话题</div></div><div class="finder-tag-wrap btn"><div class="tag-inner">@视频号</div></div></div><!----><!----></div></div>
+7.点击发布按钮
+<button type="button" class="weui-desktop-btn weui-desktop-btn_primary">发表</button>

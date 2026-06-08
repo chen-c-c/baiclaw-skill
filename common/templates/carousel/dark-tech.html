@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<style>
+:root {
+  --font: 'PingFang SC','Source Han Sans SC','Noto Sans SC',sans-serif;
+  --bg-dark: #0A0A14;
+  --bg-light: #F8F8F5;
+  --accent: #16C0FE;
+  --primary: #0437B2;
+  --primary-2: #0078E9;
+  --white: #FFFFFF;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #ECEEEA; font-family: var(--font); }
+.card { width: 540px; height: 720px; position: relative; overflow: hidden; }
+.watermark {
+  position: absolute; bottom: 24px; left: 24px; z-index: 10;
+  display: flex; align-items: center; gap: 8px;
+  font-size: 10px; letter-spacing: 2px; font-weight: 700;
+}
+
+/* C1 - Cover */
+.c1 { background: var(--bg-dark); padding: 56px 48px 88px; color: var(--white); }
+.c1::before {
+  content: ''; position: absolute;
+  top: -100px; right: -100px;
+  width: 320px; height: 320px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(22,192,254,0.22) 0%, transparent 65%);
+}
+.c1::after {
+  content: ''; position: absolute;
+  bottom: -80px; left: -60px;
+  width: 280px; height: 280px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(4,55,178,0.40) 0%, transparent 65%);
+}
+.c1-eyebrow {
+  display: inline-block;
+  font-size: 11px; color: var(--accent); letter-spacing: 3px; font-weight: 700; margin-bottom: 36px;
+  background: rgba(22,192,254,0.12); border: 1px solid rgba(22,192,254,0.40);
+  padding: 5px 14px; border-radius: 999px;
+}
+.c1-title { font-size: 56px; font-weight: 900; line-height: 1.2; letter-spacing: -1px; text-shadow: 0 0 40px rgba(22,192,254,0.25); }
+.c1-title .accent { color: var(--accent); }
+.c1-title .underline { border-bottom: 4px solid var(--accent); padding-bottom: 2px; display: inline-block; }
+.c1-sub {
+  font-size: 18px; color: rgba(255,255,255,0.65); line-height: 1.7; margin-top: 32px;
+  border-left: 3px solid var(--accent); padding-left: 16px;
+}
+.c1-sub strong { color: var(--white); }
+.c1-dots {
+  position: absolute; bottom: 28px; right: 48px; z-index: 10;
+  display: flex; gap: 6px; align-items: center;
+}
+.c1-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.25); }
+.c1-dot.active { width: 20px; border-radius: 3px; background: var(--accent); }
+.c1 .watermark { color: rgba(255,255,255,0.55); }
+
+/* C2 - Intro */
+.c2 { background: var(--bg-light); padding: 60px 48px; color: #0A0A0A; overflow: hidden; }
+.c2::after {
+  content: ''; position: absolute;
+  top: -60px; right: -60px;
+  width: 200px; height: 200px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(22,192,254,0.12) 0%, transparent 70%);
+}
+.c2-num {
+  display: inline-block;
+  font-size: 11px; font-weight: 800; color: var(--primary); letter-spacing: 3px; margin-bottom: 24px;
+  border: 1px solid rgba(4,55,178,0.30); border-radius: 999px; padding: 4px 12px;
+}
+.c2-headline { font-size: 38px; font-weight: 800; line-height: 1.35; margin-bottom: 28px; letter-spacing: -0.3px; }
+.c2-headline .accent { color: var(--primary); }
+.c2-headline .strike { text-decoration: line-through; text-decoration-color: rgba(4,55,178,0.55); text-decoration-thickness: 3px; color: #888; }
+.c2-divider { width: 48px; height: 3px; background: var(--accent); margin: 24px 0; }
+.c2-text { font-size: 17px; color: #2A2A2A; line-height: 1.95; letter-spacing: 0.3px; }
+.c2-text strong { color: var(--primary); }
+.c2 .watermark { color: rgba(0,0,0,0.45); }
+
+/* C3 - Pain */
+.c3 { background: var(--bg-light); padding: 60px 48px; color: #0A0A0A; }
+.c3-num {
+  display: inline-block;
+  font-size: 11px; font-weight: 800; color: var(--primary); letter-spacing: 3px; margin-bottom: 24px;
+  border: 1px solid rgba(4,55,178,0.30); border-radius: 999px; padding: 4px 12px;
+}
+.c3-headline { font-size: 32px; font-weight: 800; line-height: 1.4; margin-bottom: 28px; }
+.c3-headline .quote { color: var(--primary); }
+.scene-card {
+  background: var(--white); border-radius: 4px; padding: 16px 20px; margin-bottom: 12px;
+  border-left: 3px solid var(--accent); box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.scene-fail { font-size: 14px; color: #555; }
+.c3-end { margin-top: 20px; font-size: 17px; font-weight: 700; line-height: 1.7; }
+.c3-end .accent { color: var(--primary); }
+.c3 .watermark { color: rgba(0,0,0,0.45); }
+
+/* C4 - Quote */
+.c4 { background: var(--bg-dark); display: flex; align-items: center; justify-content: center; }
+.c4::before {
+  content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+  width: 460px; height: 460px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(22,192,254,0.2) 0%, transparent 60%);
+}
+.c4-content { position: relative; z-index: 2; text-align: center; padding: 48px; color: var(--white); }
+.c4-mark {
+  font-size: 88px; color: var(--accent); opacity: 0.55; line-height: 0.8;
+  margin-bottom: 24px; font-family: Georgia, serif; font-weight: 900;
+}
+.c4-text {
+  font-size: 30px; font-weight: 800; line-height: 1.5; letter-spacing: 0.5px;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 5; overflow: hidden;
+}
+.c4-text .accent { color: var(--accent); }
+.c4-divider { width: 32px; height: 2px; background: rgba(22,192,254,0.5); margin: 20px auto 16px; }
+.c4-aside { font-size: 13px; color: rgba(255,255,255,0.45); letter-spacing: 1px; }
+.c4 .watermark { color: rgba(255,255,255,0.55); }
+
+/* C5 - Solution */
+.c5 { background: var(--bg-light); padding: 60px 48px; color: #0A0A0A; }
+.c5-num {
+  display: inline-block;
+  font-size: 11px; font-weight: 800; color: var(--primary); letter-spacing: 3px; margin-bottom: 24px;
+  border: 1px solid rgba(4,55,178,0.30); border-radius: 999px; padding: 4px 12px;
+}
+.c5-headline { font-size: 36px; font-weight: 800; line-height: 1.3; margin-bottom: 24px; }
+.c5-headline .product { color: var(--primary); }
+.c5-steps { display: flex; gap: 8px; margin-bottom: 24px; }
+.c5-step {
+  flex: 1; padding: 16px 8px;
+  background: var(--white); border-radius: 6px; text-align: center;
+  border-top: 3px solid var(--accent); box-shadow: 0 2px 8px rgba(4,55,178,0.08);
+}
+.c5-step-num { font-size: 13px; font-weight: 900; color: var(--primary); letter-spacing: 1px; margin-bottom: 6px; }
+.c5-step-name { font-size: 13px; font-weight: 700; color: #1A1A1A; word-break: break-all; }
+.c5-bottom { font-size: 16px; color: #2A2A2A; line-height: 1.85; }
+.c5-bottom strong { color: var(--primary); }
+.c5 .watermark { color: rgba(0,0,0,0.45); }
+
+/* C6 - CTA */
+.c6 {
+  background: radial-gradient(circle at 30% 20%, rgba(4,55,178,0.3) 0%, transparent 55%),
+              radial-gradient(circle at 80% 80%, rgba(22,192,254,0.18) 0%, transparent 55%),
+              var(--bg-dark);
+  padding: 56px 48px 32px; color: var(--white); display: flex; flex-direction: column; min-height: 720px;
+}
+.c6-eyebrow {
+  display: inline-block;
+  font-size: 11px; color: var(--accent); letter-spacing: 3px; font-weight: 700; margin-bottom: 32px;
+  background: rgba(22,192,254,0.10); border: 1px solid rgba(22,192,254,0.35);
+  padding: 5px 14px; border-radius: 999px;
+}
+.c6-text-2 { font-size: 32px; font-weight: 800; line-height: 1.45; color: var(--accent); margin-bottom: 32px; }
+.c6-divider { width: 60px; height: 3px; background: var(--accent); margin: 0 0 28px; }
+.c6-sign { font-size: 14px; color: rgba(255,255,255,0.65); line-height: 1.85; margin-bottom: auto; }
+.c6-sign strong { color: var(--white); }
+.c6-cta { margin-top: 40px; padding: 16px 20px; border: 1px solid rgba(22,192,254,0.4); border-radius: 4px; background: rgba(22,192,254,0.06); text-align: center; }
+.c6-cta-line { font-size: 13px; color: var(--white); line-height: 1.7; font-weight: 600; }
+.c6-cta-line .accent { color: var(--accent); }
+.c6 .watermark { color: rgba(255,255,255,0.55); }
+{{COVER_BG_CSS}}
+</style>
+</head>
+<body>
+
+<!-- CARD 1 -->
+<div class="card c1">
+  <div class="c1-eyebrow">{{BRAND}} · {{INDUSTRY}}</div>
+  <div class="c1-title">{{TITLE}}</div>
+  <div class="c1-sub">{{HOOK_SHORT}}</div>
+  <div class="c1-dots">
+    <div class="c1-dot active"></div>
+    <div class="c1-dot"></div>
+    <div class="c1-dot"></div>
+    <div class="c1-dot"></div>
+    <div class="c1-dot"></div>
+    <div class="c1-dot"></div>
+  </div>
+  <div class="watermark"><svg viewBox="58 25 189 189" width="16" height="16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M58 29.9808C58 27.2273 60.1691 25 62.8527 25H179.12C181.798 25 183.973 27.2273 183.973 29.9808V83.0212C183.973 85.7688 181.804 88.002 179.12 88.002H62.8527C60.175 88.002 58 85.7746 58 83.0212V29.9808Z" fill="#16C0FE"/><path d="M188.311 214H125.172C117.671 214.111 114.151 204.833 119.554 199.432L199.875 119.12C203.226 115.77 208.569 115.671 211.809 118.91L244.644 151.74C247.877 154.973 247.783 160.316 244.433 163.672L200.448 207.651C197.209 210.878 192.801 213.93 188.311 214Z" fill="#0078E9"/><path d="M224.25 63.1039L192.146 31.0037C191.848 30.7056 191.532 30.4484 191.205 30.2087L191.217 30.2028C188.013 26.9642 183.651 25.1402 179.091 25.1285L160.533 25.0759L163.492 25.5378C171.449 26.7829 174.723 36.4522 169.163 42.2748L62.5953 148.817C59.3562 152.05 59.3562 157.3 62.5953 160.533L94.6995 192.633C97.9385 195.866 103.183 195.866 106.416 192.633L224.25 74.8192C227.484 71.5864 227.484 66.3426 224.25 63.1039Z" fill="currentColor"/></svg> {{BRAND}}</div>
+</div>
+
+<!-- CARD 2 -->
+<div class="card c2">
+  <div class="c2-num">01 / 06</div>
+  <div class="c2-headline"><span class="accent">{{TITLE_SHORT}}</span></div>
+  <div class="c2-divider"></div>
+  <div class="c2-text">{{HOOK}}</div>
+  <div class="watermark" style="color:rgba(0,0,0,0.45)"><svg viewBox="58 25 189 189" width="16" height="16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M58 29.9808C58 27.2273 60.1691 25 62.8527 25H179.12C181.798 25 183.973 27.2273 183.973 29.9808V83.0212C183.973 85.7688 181.804 88.002 179.12 88.002H62.8527C60.175 88.002 58 85.7746 58 83.0212V29.9808Z" fill="#16C0FE"/><path d="M188.311 214H125.172C117.671 214.111 114.151 204.833 119.554 199.432L199.875 119.12C203.226 115.77 208.569 115.671 211.809 118.91L244.644 151.74C247.877 154.973 247.783 160.316 244.433 163.672L200.448 207.651C197.209 210.878 192.801 213.93 188.311 214Z" fill="#0078E9"/><path d="M224.25 63.1039L192.146 31.0037C191.848 30.7056 191.532 30.4484 191.205 30.2087L191.217 30.2028C188.013 26.9642 183.651 25.1402 179.091 25.1285L160.533 25.0759L163.492 25.5378C171.449 26.7829 174.723 36.4522 169.163 42.2748L62.5953 148.817C59.3562 152.05 59.3562 157.3 62.5953 160.533L94.6995 192.633C97.9385 195.866 103.183 195.866 106.416 192.633L224.25 74.8192C227.484 71.5864 227.484 66.3426 224.25 63.1039Z" fill="currentColor"/></svg> {{BRAND}}</div>
+</div>
+
+<!-- CARD 3 -->
+<div class="card c3">
+  <div class="c3-num">02 / 06</div>
+  <div class="c3-headline">这些情况，<br><span class="quote">你有没有遇到过？</span></div>
+  <div class="scene-card"><div class="scene-fail">{{PAIN_1}}</div></div>
+  <div class="scene-card"><div class="scene-fail">{{PAIN_2}}</div></div>
+  <div class="scene-card"><div class="scene-fail">{{PAIN_3}}</div></div>
+  <div class="c3-end">是时候<span class="accent">换个方式了。</span></div>
+  <div class="watermark" style="color:rgba(0,0,0,0.45)"><svg viewBox="58 25 189 189" width="16" height="16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M58 29.9808C58 27.2273 60.1691 25 62.8527 25H179.12C181.798 25 183.973 27.2273 183.973 29.9808V83.0212C183.973 85.7688 181.804 88.002 179.12 88.002H62.8527C60.175 88.002 58 85.7746 58 83.0212V29.9808Z" fill="#16C0FE"/><path d="M188.311 214H125.172C117.671 214.111 114.151 204.833 119.554 199.432L199.875 119.12C203.226 115.77 208.569 115.671 211.809 118.91L244.644 151.74C247.877 154.973 247.783 160.316 244.433 163.672L200.448 207.651C197.209 210.878 192.801 213.93 188.311 214Z" fill="#0078E9"/><path d="M224.25 63.1039L192.146 31.0037C191.848 30.7056 191.532 30.4484 191.205 30.2087L191.217 30.2028C188.013 26.9642 183.651 25.1402 179.091 25.1285L160.533 25.0759L163.492 25.5378C171.449 26.7829 174.723 36.4522 169.163 42.2748L62.5953 148.817C59.3562 152.05 59.3562 157.3 62.5953 160.533L94.6995 192.633C97.9385 195.866 103.183 195.866 106.416 192.633L224.25 74.8192C227.484 71.5864 227.484 66.3426 224.25 63.1039Z" fill="currentColor"/></svg> {{BRAND}}</div>
+</div>
+
+<!-- CARD 4 -->
+<div class="card c4">
+  <div class="c4-content">
+    <div class="c4-mark">"</div>
+    <div class="c4-text">{{INSIGHT}}</div>
+    <div class="c4-divider"></div>
+    <div class="c4-aside">来自真实用户的感受</div>
+  </div>
+  <div class="watermark"><svg viewBox="58 25 189 189" width="16" height="16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M58 29.9808C58 27.2273 60.1691 25 62.8527 25H179.12C181.798 25 183.973 27.2273 183.973 29.9808V83.0212C183.973 85.7688 181.804 88.002 179.12 88.002H62.8527C60.175 88.002 58 85.7746 58 83.0212V29.9808Z" fill="#16C0FE"/><path d="M188.311 214H125.172C117.671 214.111 114.151 204.833 119.554 199.432L199.875 119.12C203.226 115.77 208.569 115.671 211.809 118.91L244.644 151.74C247.877 154.973 247.783 160.316 244.433 163.672L200.448 207.651C197.209 210.878 192.801 213.93 188.311 214Z" fill="#0078E9"/><path d="M224.25 63.1039L192.146 31.0037C191.848 30.7056 191.532 30.4484 191.205 30.2087L191.217 30.2028C188.013 26.9642 183.651 25.1402 179.091 25.1285L160.533 25.0759L163.492 25.5378C171.449 26.7829 174.723 36.4522 169.163 42.2748L62.5953 148.817C59.3562 152.05 59.3562 157.3 62.5953 160.533L94.6995 192.633C97.9385 195.866 103.183 195.866 106.416 192.633L224.25 74.8192C227.484 71.5864 227.484 66.3426 224.25 63.1039Z" fill="currentColor"/></svg> {{BRAND}}</div>
+</div>
+
+<!-- CARD 5 -->
+<div class="card c5">
+  <div class="c5-num">03 / 06</div>
+  <div class="c5-headline">我推荐<span class="product">{{BRAND}}。</span></div>
+  <div class="c5-steps">
+    <div class="c5-step"><div class="c5-step-num">01</div><div class="c5-step-name">{{FEAT_1}}</div></div>
+    <div class="c5-step"><div class="c5-step-num">02</div><div class="c5-step-name">{{FEAT_2}}</div></div>
+    <div class="c5-step"><div class="c5-step-num">03</div><div class="c5-step-name">{{FEAT_3}}</div></div>
+    <div class="c5-step"><div class="c5-step-num">04</div><div class="c5-step-name">{{FEAT_4}}</div></div>
+  </div>
+  <div class="c5-bottom">{{INSIGHT}}</div>
+  <div class="watermark" style="color:rgba(0,0,0,0.45)"><svg viewBox="58 25 189 189" width="16" height="16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M58 29.9808C58 27.2273 60.1691 25 62.8527 25H179.12C181.798 25 183.973 27.2273 183.973 29.9808V83.0212C183.973 85.7688 181.804 88.002 179.12 88.002H62.8527C60.175 88.002 58 85.7746 58 83.0212V29.9808Z" fill="#16C0FE"/><path d="M188.311 214H125.172C117.671 214.111 114.151 204.833 119.554 199.432L199.875 119.12C203.226 115.77 208.569 115.671 211.809 118.91L244.644 151.74C247.877 154.973 247.783 160.316 244.433 163.672L200.448 207.651C197.209 210.878 192.801 213.93 188.311 214Z" fill="#0078E9"/><path d="M224.25 63.1039L192.146 31.0037C191.848 30.7056 191.532 30.4484 191.205 30.2087L191.217 30.2028C188.013 26.9642 183.651 25.1402 179.091 25.1285L160.533 25.0759L163.492 25.5378C171.449 26.7829 174.723 36.4522 169.163 42.2748L62.5953 148.817C59.3562 152.05 59.3562 157.3 62.5953 160.533L94.6995 192.633C97.9385 195.866 103.183 195.866 106.416 192.633L224.25 74.8192C227.484 71.5864 227.484 66.3426 224.25 63.1039Z" fill="currentColor"/></svg> {{BRAND}}</div>
+</div>
+
+<!-- CARD 6 -->
+<div class="card c6">
+  <div class="c6-eyebrow">END · {{BRAND}} · {{INDUSTRY}}</div>
+  <div class="c6-text-2">{{CTA}}</div>
+  <div class="c6-divider"></div>
+  <div class="c6-sign"><strong>{{BRAND}}</strong> · {{INDUSTRY}}</div>
+  <div class="c6-cta">
+    <div class="c6-cta-line">{{TOPIC_CTA}}关注 <span class="accent">@{{BRAND}}</span> · 评论区聊聊👇</div>
+  </div>
+  <div class="watermark"><svg viewBox="58 25 189 189" width="16" height="16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M58 29.9808C58 27.2273 60.1691 25 62.8527 25H179.12C181.798 25 183.973 27.2273 183.973 29.9808V83.0212C183.973 85.7688 181.804 88.002 179.12 88.002H62.8527C60.175 88.002 58 85.7746 58 83.0212V29.9808Z" fill="#16C0FE"/><path d="M188.311 214H125.172C117.671 214.111 114.151 204.833 119.554 199.432L199.875 119.12C203.226 115.77 208.569 115.671 211.809 118.91L244.644 151.74C247.877 154.973 247.783 160.316 244.433 163.672L200.448 207.651C197.209 210.878 192.801 213.93 188.311 214Z" fill="#0078E9"/><path d="M224.25 63.1039L192.146 31.0037C191.848 30.7056 191.532 30.4484 191.205 30.2087L191.217 30.2028C188.013 26.9642 183.651 25.1402 179.091 25.1285L160.533 25.0759L163.492 25.5378C171.449 26.7829 174.723 36.4522 169.163 42.2748L62.5953 148.817C59.3562 152.05 59.3562 157.3 62.5953 160.533L94.6995 192.633C97.9385 195.866 103.183 195.866 106.416 192.633L224.25 74.8192C227.484 71.5864 227.484 66.3426 224.25 63.1039Z" fill="currentColor"/></svg> {{BRAND}}</div>
+</div>
+
+</body>
+</html>

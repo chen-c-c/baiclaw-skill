@@ -1,0 +1,4 @@
+interface:
+  display_name: "微信公众号文章采集"
+  short_description: "扫码登录微信公众平台后，按公众号名称和关键词采集历史文章正文、图片和视频链接并入库。"
+  default_prompt: "使用 wechat-article-crawler 采集指定微信公众号文章。用户直接发采集任务时使用 mp-sync；如果 Cookie/token 缺失或失效，命令会自动打开微信公众平台登录页，等待用户扫码或账号密码登录，登录成功后继续执行原任务。按用户给出的公众号名称和关键词进行 OR 匹配。查历史文章时加 --full。抓取正文 HTML、正文文本、图片和视频/iframe 链接，保存到本地数据库和资源目录，并用 Markdown 展示执行结果。"

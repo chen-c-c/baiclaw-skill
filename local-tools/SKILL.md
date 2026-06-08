@@ -1,8 +1,7 @@
 ---
 name: local-tools
-description: Access local file system resources. Use this skill to read, write, and list files on the user's device.
+description: Access local system resources including Calendar on macOS and Windows. Use this skill when you need to manage user's schedule directly on their device.
 official: true
-version: 2.0.0
 ---
 
 # Local Tools Skill
@@ -11,50 +10,23 @@ version: 2.0.0
 
 Use the local-tools skill when you need to:
 
-- **Read files** - View the contents of any local file
-- **Write files** - Create or overwrite a file with new content
-- **List directories** - Browse folder contents and discover files
+- **Calendar Management** - View, create, update, or delete calendar events
 
 **Examples of when to use:**
-- User: "Show me the contents of README.md"
-- User: "List what files are in the src/ directory"
-- User: "Save this text to output.txt"
-- User: "Read my config file at ~/config.json"
+- User: "Show me my schedule for tomorrow"
+- User: "Create a meeting at 3 PM"
+- User: "Search for calendar events containing 'project'"
+- User: "Delete tomorrow's meeting"
 
-## Available Tools
+## How It Works
 
-### read_file
-Read the full contents of a local file.
-```json
-{"tool": "read_file", "arguments": {"path": "/path/to/file.txt"}}
 ```
-
-### write_file
-Write (create or overwrite) a file with given content.
-```json
-{"tool": "write_file", "arguments": {"path": "/path/to/file.txt", "content": "file content here"}}
+┌──────────┐    Bash/PowerShell    ┌─────────────────────────────────────────────────────────────┐
+│  Claude  │──────────────────────▶│  calendar.sh / calendar.ps1                                 │
+│          │                       │  ├─ macOS: osascript -l JavaScript (JXA) ──▶ Calendar.app   │
+│          │                       │  └─ Windows: PowerShell ──▶ Outlook COM API                 │
+└──────────┘                       └─────────────────────────────────────────────────────────────┘
 ```
-
-### list_dir
-List entries (files and folders) inside a directory.
-```json
-{"tool": "list_dir", "arguments": {"path": "/path/to/directory"}}
-```
-
-## Workflow
-
-1. Understand what local file operation the user wants.
-2. Call the appropriate tool with the correct path.
-3. For `read_file`: summarise or display the file contents clearly.
-4. For `write_file`: confirm the path and number of bytes written.
-5. For `list_dir`: present the listing in a readable format, distinguishing files from directories.
-
-## Notes
-
-- Relative paths are resolved from the agent's working directory.
-- Path traversal (using `..`) is not allowed for security reasons.
-- Binary files may not display correctly with `read_file` — note this to the user.
-
 
 **Architecture:**
 1. **CLI Scripts** - Platform-specific scripts, no HTTP server needed

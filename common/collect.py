@@ -1,0 +1,343 @@
+#!/usr/bin/env python3
+# @author FondaWu
+"""
+common/collect.py — 收集今日热点素材（从 content-collect skill 迁移而来）
+
+搜集策略（按优先级）：
+  1. 36氪快讯 — 中文科技商业新闻源，返回结构化内容
+  2. 爱范儿 — 消费科技/数字产品头版
+  3. DuckDuckGo 搜索 — 兜底
+
+可导入函数：
+  collect(brand_name, industry, keywords, target_audience) -> dict
+  collect_from_db(output_dir) -> str   # 从 SQLite 读品牌信息，写 topics.json，返回路径
+"""
+import argparse
+import json
+import os
+import re
+import sys
+from datetime import date, datetime
+from pathlib import Path
+from typing import Optional
+
+try:
+    import requests
+except ImportError:
+    requests = None  # type: ignore
+
+# ── HTTP 客户端 ──────────────────────────────────────────────────────────────
+
+SESSION = None
+
+
+def _session():
+    global SESSION
+    if SESSION is None:
+        SESSION = requests.Session()
+        SESSION.headers.update({
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/131.0.0.0 Safari/537.36"
+            ),
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+        })
+    return SESSION
+
+
+def _clean_html(raw: str) -> str:
+    """Remove HTML tags, collapse whitespace."""
+    text = re.sub(r"<[^>]+>", " ", raw)
+    text = re.sub(r"\s+", " ", text).strip()
+    return text[:2000]
+
+
+# ── Source: 36氪快讯 ─────────────────────────────────────────────────────────
+
+SOURCE_36KR = "36氪快讯"
+
+
+def fetch_36kr(max_items: int = 10) -> list[dict]:
+    """Scrape 36kr newsflashes. Returns list of {title, summary, url, source}."""
+    items = []
+    url = "https://www.36kr.com/newsflashes"
+    try:
+        resp = _session().get(url, timeout=10)
+        resp.encoding = "utf-8"
+        html = resp.text
+    except Exception as e:
+        print(f"[warn] 36kr fetch failed: {e}", file=sys.stderr)
+        return items
+
+    for m in re.finditer(
+        r'href="(/newsflashes/\d+)"[^>]*>([^<]+)</a>',
+        html,
+    ):
+        link = m.group(1)
+        title = _clean_html(m.group(2))
+        if not title or len(title) < 6:
+            continue
+        full_url = f"https://www.36kr.com{link}" if not link.startswith("http") else link
+        items.append({
+            "title": title,
+            "summary": "",
+            "url": full_url,
+            "source": SOURCE_36KR,
+        })
+        if len(items) >= max_items:
+            break
+
+    if not items:
+        for m in re.finditer(r'"template_content"\s*:\s*"([^"]+)"', html):
+            title = _clean_html(m.group(1))
+            if title and len(title) > 8:
+                items.append({
+                    "title": title[:120],
+                    "summary": "",
+                    "url": url,
+                    "source": SOURCE_36KR,
+                })
+                if len(items) >= max_items:
+                    break
+
+    if not items:
+        for m in re.finditer(r"36氪获悉，([^。]+[。])", html):
+            text = _clean_html(m.group(1))
+            items.append({
+                "title": text[:80],
+                "summary": text,
+                "url": url,
+                "source": SOURCE_36KR,
+            })
+            if len(items) >= max_items:
+                break
+
+    return items
+
+
+# ── Source: 爱范儿 ────────────────────────────────────────────────────────────
+
+SOURCE_IFANR = "爱范儿"
+
+
+def fetch_ifanr(max_items: int = 10) -> list[dict]:
+    """Scrape ifanr.com homepage for latest articles."""
+    items = []
+    url = "https://www.ifanr.com/"
+    try:
+        resp = _session().get(url, timeout=10)
+        resp.encoding = "utf-8"
+        html = resp.text
+    except Exception as e:
+        print(f"[warn] ifanr fetch failed: {e}", file=sys.stderr)
+        return items
+
+    seen = set()
+
+    for m in re.finditer(
+        r'href="(https?://www\.ifanr\.com/\d+\.html?)"[^>]*>([^<]+)</a>',
+        html,
+    ):
+        link = m.group(1)
+        title = _clean_html(m.group(2))
+        if not title or len(title) < 4:
+            continue
+        if title in seen or link in seen:
+            continue
+        seen.add(title)
+        seen.add(link)
+        items.append({"title": title, "summary": "", "url": link, "source": SOURCE_IFANR})
+        if len(items) >= max_items:
+            break
+
+    if len(items) < max_items:
+        for m in re.finditer(r'<h[23][^>]*>\s*<a[^>]*href="([^"]+)"[^>]*>([^<]+)</a>\s*</h[23]>', html):
+            link = m.group(1)
+            title = _clean_html(m.group(2))
+            if not title or len(title) < 4 or title in seen or link in seen:
+                continue
+            if not link.startswith("http"):
+                link = "https://www.ifanr.com" + link
+            seen.add(title)
+            seen.add(link)
+            items.append({"title": title, "summary": "", "url": link, "source": SOURCE_IFANR})
+            if len(items) >= max_items:
+                break
+
+    return items
+
+
+# ── Source: DuckDuckGo (fallback) ─────────────────────────────────────────────
+
+SOURCE_DDG = "DuckDuckGo"
+
+
+def search_ddg(query: str, max_results: int = 3) -> list[dict]:
+    items = []
+    try:
+        from ddgs import DDGS
+        import concurrent.futures
+        def _do_search():
+            with DDGS(timeout=8) as ddgs:
+                return list(ddgs.text(query, max_results=max_results))
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+            fut = pool.submit(_do_search)
+            try:
+                results = fut.result(timeout=10)
+            except concurrent.futures.TimeoutError:
+                print(f"[warn] DDG timeout for '{query}'", file=sys.stderr)
+                return items
+            for r in results:
+                items.append({
+                    "title": r.get("title", ""),
+                    "summary": r.get("body", ""),
+                    "url": r.get("href", ""),
+                    "source": SOURCE_DDG,
+                })
+    except Exception as e:
+        print(f"[warn] DDG search failed for '{query}': {e}", file=sys.stderr)
+    return items
+
+
+# ── Aggregator ────────────────────────────────────────────────────────────────
+
+
+def collect(
+    brand_name: str,
+    industry: str,
+    keywords: str,
+    target_audience: str,
+) -> dict:
+    """采集热点，返回 topics dict。"""
+    today = date.today().isoformat()
+    raw_all = []
+
+    print("[info] fetching 36kr newsflashes...", flush=True)
+    kr_items = fetch_36kr(12)
+    raw_all.append({"source": SOURCE_36KR, "items": kr_items})
+    print(f"[info]    got {len(kr_items)} items", flush=True)
+
+    print("[info] fetching ifanr homepage...", flush=True)
+    ifr_items = fetch_ifanr(10)
+    raw_all.append({"source": SOURCE_IFANR, "items": ifr_items})
+    print(f"[info]    got {len(ifr_items)} items", flush=True)
+
+    queries = [
+        f"{industry} 爆款 今日",
+        f"{keywords.split(',')[0]} 热点 最新",
+        f"{industry} 热搜 今日",
+        f"{target_audience} {industry} 痛点",
+    ]
+    for q in queries:
+        print(f"[info] searching DDG: {q}", flush=True)
+        ddg_items = search_ddg(q, 3)
+        raw_all.append({"source": f"{SOURCE_DDG}: {q}", "items": ddg_items})
+        print(f"[info]    got {len(ddg_items)} items", flush=True)
+
+    all_items = []
+    seen = set()
+    industry_lower = industry.lower()
+    kw_list = [k.strip().lower() for k in keywords.split(",") if k.strip()]
+    industry_words = [w for w in re.split(r"[/,，、\s]+", industry_lower) if len(w) >= 2]
+    all_brand_kws = kw_list + industry_words
+
+    for group in raw_all:
+        for item in group["items"]:
+            key = item["title"][:50]
+            if key in seen:
+                continue
+            seen.add(key)
+            text = (item["title"] + " " + item["summary"]).lower()
+            score = sum(1 for kw in all_brand_kws if kw in text)
+            if item["source"] == SOURCE_DDG:
+                score += 1
+            all_items.append({**item, "relevance": score})
+
+    all_items.sort(key=lambda x: -x["relevance"])
+    top_items = all_items[:20] if all_items else []
+
+    return {
+        "collected_at": datetime.now().isoformat(),
+        "date": today,
+        "brand": {"name": brand_name, "industry": industry, "keywords": keywords, "target_audience": target_audience},
+        "sources_used": [
+            {"source": SOURCE_36KR, "status": "ok" if kr_items else "empty", "count": len(kr_items)},
+            {"source": SOURCE_IFANR, "status": "ok" if ifr_items else "empty", "count": len(ifr_items)},
+            {"source": SOURCE_DDG, "status": "used"},
+        ],
+        "topics": top_items,
+        "total_raw": len(all_items),
+    }
+
+
+def collect_from_db(output_dir: str) -> str:
+    """从企业 SQLite 读取品牌信息，采集热点并写入 output_dir/topics.json，返回文件路径。"""
+    from enterprise_db import get_enterprise_data, get_first_brand
+    db_data = get_enterprise_data()
+    brand = get_first_brand(db_data) if db_data else {}
+    data = collect(
+        brand_name=brand.get("name", ""),
+        industry=brand.get("industry", ""),
+        keywords=",".join(brand.get("keywords") or brand.get("sellingPoints") or []),
+        target_audience=brand.get("targetAudience", "年轻用户"),
+    )
+    p = Path(output_dir) / "topics.json"
+    p.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(f"[collect] topics written: {p}", flush=True)
+    return str(p)
+
+
+def _write_output(data: dict, output_path: Optional[str]):
+    if output_path:
+        os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        print(f"[info] output written: {output_path}", flush=True)
+    else:
+        print(json.dumps(data, ensure_ascii=False, indent=2))
+
+
+def main():
+    _temp_base = Path(os.environ.get("BAICLAW_TEMP_DIR", __import__("tempfile").gettempdir())) / "baiclaw"
+    run_id = datetime.now().strftime("%Y%m%d-%H%M%S")
+    run_dir = _temp_base / "runs" / run_id
+    run_dir.mkdir(parents=True, exist_ok=True)
+    default_output = str(run_dir / "topics.json")
+
+    parser = argparse.ArgumentParser(description="content-collect: 搜集今日热点")
+    args, _ = parser.parse_known_args()
+    args.output = default_output
+
+    sys.path.insert(0, str(Path(__file__).parent))
+    brand_name = industry = keywords = target_audience = ""
+    try:
+        from enterprise_db import get_enterprise_data, get_first_brand
+        db_data = get_enterprise_data()
+        brand = get_first_brand(db_data) if db_data else {}
+        if brand:
+            brand_name = brand.get("name", "")
+            industry = brand.get("industry", "")
+            keywords = ",".join(brand.get("keywords") or brand.get("sellingPoints") or [])
+            target_audience = brand.get("targetAudience", "年轻用户")
+            print(f"[collect] 品牌: {brand_name} / 行业: {industry}", flush=True)
+    except Exception as e:
+        print(f"[collect][warn] 读取企业配置失败: {e}", file=sys.stderr)
+
+    if not brand_name or not industry:
+        print("[collect][error] 企业配置中无品牌/行业数据，请先在管理后台配置品牌档案", file=sys.stderr)
+        sys.exit(1)
+
+    data = collect(
+        brand_name=brand_name,
+        industry=industry,
+        keywords=keywords,
+        target_audience=target_audience or "年轻用户",
+    )
+    _write_output(data, args.output)
+    print(json.dumps({"topics_path": args.output, "run_dir": str(run_dir)}, ensure_ascii=False))
+
+
+if __name__ == "__main__":
+    main()

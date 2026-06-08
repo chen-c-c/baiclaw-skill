@@ -1,0 +1,11 @@
+1.打开知乎创作页面：https://www.zhihu.com/creator，使用cookie登录
+2.点击写文章按钮，进入编写文章页面https://zhuanlan.zhihu.com/write
+<div class="css-byu4by"><img src="https://static.zhihu.com/heifetz/assets/article.58c0b223.png" class="css-w5p1ty">写文章</div>
+3.输入文章标题
+<textarea rows="1" class="Input i7cW1UcwT6ThdhTakqFm" placeholder="请输入标题（最多 100 个字）" style="height: 45px;"></textarea>
+4.输入正文
+<div class="public-DraftEditorPlaceholder-root"><div class="public-DraftEditorPlaceholder-inner" id="placeholder-2cieg" style="white-space: pre-wrap;">请输入正文</div></div>
+5.点击添加文章封面图块，在弹出的文件选择对话框里选择一张封面
+<label class="UploadPicture-wrapper css-1271az4"><input type="file" accept=".jpeg, .jpg, .png" class="UploadPicture-input"><div class="css-1i9x2dq"><svg width="14" height="14" viewBox="0 0 24 24" class="Zi Zi--Plus css-15ro776" fill="currentColor"><path fill-rule="evenodd" d="M13.25 3.25a1.25 1.25 0 1 0-2.5 0v7.5h-7.5a1.25 1.25 0 1 0 0 2.5h7.5v7.5a1.25 1.25 0 1 0 2.5 0v-7.5h7.5a1.25 1.25 0 0 0 0-2.5h-7.5v-7.5Z" clip-rule="evenodd"></path></svg>添加文章封面</div></label>
+6.点击发布按钮
+<button type="button" class="Button css-d0uhtl FEfUrdfMIKpQDJDqkjte Button--primary Button--blue epMJl0lFQuYbC7jrwr_o JmYzaky7MEPMFcJDLNMG">发布</button>
