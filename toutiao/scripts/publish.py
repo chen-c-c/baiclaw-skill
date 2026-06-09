@@ -307,7 +307,6 @@ def _click_publish_button(page) -> dict:
             }}""")
             if confirmed:
                 print(f"[info] 已点击确认发布按钮: {confirmed}", flush=True)
-                _human_delay(page, 2000, 4000)
                 break
             _human_delay(page, 800, 1200)
             if attempt == 3:
@@ -328,13 +327,28 @@ def _click_publish_button(page) -> dict:
                 }""")
                 if confirmed:
                     print("[info] byte-drawer 中点击了确认按钮", flush=True)
-                    _human_delay(page, 2000, 4000)
                     break
 
         if not confirmed:
             print("[warn] 未找到确认发布按钮", file=sys.stderr)
 
-        # 等待发布结果：URL 导航离开 /publish 或页面出现成功提示
+        # 等待发布结果
+        # 注意：点击确认后立即检测，不先等固定延迟（Toast "提交成功" 短暂出现会消失）
+        # wait_for_function 从调用起持续 polling，能捕获到 Toast 出现的瞬间
+
+        # 1. 立即检测 Toast 成功提示（polling 10s，Toast 通常在点击后 1-3s 出现）
+        try:
+            page.wait_for_function("""() => {
+                const t = document.body.innerText;
+                return t.includes('提交成功') || t.includes('发布成功') || t.includes('审核中') || t.includes('已提交');
+            }""", timeout=10_000)
+            print("[info] 检测到发布成功提示", flush=True)
+            _human_delay(page, 1000, 2000)
+            return {"success": True, "publishedUrl": page.url}
+        except Exception:
+            pass
+
+        # 2. 检查 URL 是否已离开发布页（部分情况页面会跳转）
         try:
             page.wait_for_url(lambda u: "/publish" not in u, timeout=30_000)
             print(f"[info] 发布成功，URL 已离开发布页: {page.url}", flush=True)
@@ -342,11 +356,12 @@ def _click_publish_button(page) -> dict:
         except Exception:
             pass
 
+        # 3. 兜底再检查一次成功提示
         try:
             page.wait_for_function("""() => {
                 const t = document.body.innerText;
-                return t.includes('发布成功') || t.includes('提交成功') || t.includes('审核中');
-            }""", timeout=15_000)
+                return t.includes('发布成功') || t.includes('提交成功') || t.includes('审核中') || t.includes('已提交');
+            }""", timeout=5_000)
             print("[info] 检测到发布成功提示", flush=True)
             return {"success": True, "publishedUrl": page.url}
         except Exception:
@@ -460,31 +475,22 @@ def _execute_publish_actions(page, draft: dict) -> dict:
         image_count = len(valid_images)
         _select_cover_type(page, image_count)
 
-        # ── 步骤4: 上传图片 ───────────────────────────────────────────────
+        # ── 步骤4: 上传图片（逐张上传，每张点确定再传下一张）───────────
         _human_delay(page, 500, 1000)
         if not valid_images:
             print("[warn] 未找到有效图片，跳过上传步骤", file=sys.stderr)
         else:
-            # 先移除页面中已有的封面图片（来自草稿残留）
             _remove_existing_cover_images(page)
 
-            upload_ok = False
+            uploaded = 0
+            for img_idx, img_path in enumerate(valid_images):
+                print(f"[info] 上传第 {img_idx+1}/{image_count} 张图片...", flush=True)
 
-            # 尝试1: 直接找 input[type='file'] 用 set_input_files
-            try:
-                file_input = page.locator("input[type='file']").first
-                if file_input.count() > 0:
-                    file_input.set_input_files(valid_images)
-                    _human_delay(page, 8000 + image_count * 2000, 12000 + image_count * 2000)
-                    print(f"[info] 已上传 {image_count} 张图片", flush=True)
-                    upload_ok = True
-            except Exception:
-                pass
+                _dismiss_drawer(page)
+                _human_delay(page, 500, 1000)
 
-            # 尝试2: 点击上传虚线框 → 侧边抽屉 → 本地上传 → 文件选择器
-            if not upload_ok:
                 try:
-                    # 2a: 点击上传虚线框
+                    # a: 点击上传虚线框
                     upload_zone = page.locator(".article-cover-add").first
                     if upload_zone.count() == 0:
                         upload_zone = page.locator(".byte-icon-plus").first.locator("..")
@@ -507,7 +513,7 @@ def _execute_publish_actions(page, draft: dict) -> dict:
                         print("[info] 已通过 JS 点击上传区", flush=True)
                         _human_delay(page, 1500, 3000)
 
-                    # 2b: 等待侧边抽屉打开
+                    # b: 等待侧边抽屉打开
                     try:
                         page.wait_for_selector(".byte-drawer-wrapper, [class*='drawer-wrapper'], [class*='byte-drawer']", timeout=8000)
                         print("[info] 上传抽屉已打开", flush=True)
@@ -515,7 +521,7 @@ def _execute_publish_actions(page, draft: dict) -> dict:
                     except Exception:
                         print("[warn] 上传抽屉未出现", file=sys.stderr)
 
-                    # 2c: 点击"本地上传" tab
+                    # c: 点击"本地上传" tab
                     local_tab = page.locator(
                         "text=本地上传, "
                         "button:has-text('本地上传'), "
@@ -540,14 +546,14 @@ def _execute_publish_actions(page, draft: dict) -> dict:
                         print("[info] 已通过 JS 点击「本地上传」选项卡", flush=True)
                     _human_delay(page, 1000, 2000)
 
-                    # 2d: 上传文件
+                    # d: 上传单张图片
                     fi = page.locator("input[type='file']").first
                     if fi.count() > 0:
-                        fi.set_input_files(valid_images)
-                        print(f"[info] 正在上传 {image_count} 张图片...", flush=True)
-                        _human_delay(page, 8000 + image_count * 2000, 12000 + image_count * 2000)
-                        print(f"[info] 已上传 {image_count} 张图片", flush=True)
-                        upload_ok = True
+                        fi.set_input_files([img_path])
+                        print(f"[info] 正在上传第 {img_idx+1} 张图片...", flush=True)
+                        _human_delay(page, 8000, 10000)
+                        print(f"[info] 第 {img_idx+1} 张图片已上传", flush=True)
+                        uploaded += 1
                     else:
                         with page.expect_file_chooser(timeout=20_000) as fc_info:
                             page.evaluate("""() => {
@@ -562,83 +568,105 @@ def _execute_publish_actions(page, draft: dict) -> dict:
                             }""")
                             _human_delay(page, 1000, 2000)
                         if fc_info and fc_info.value:
-                            fc_info.value.set_files(valid_images)
-                            print(f"[info] 正在上传 {image_count} 张图片...", flush=True)
-                            _human_delay(page, 8000 + image_count * 2000, 12000 + image_count * 2000)
-                            print(f"[info] 已上传 {image_count} 张图片", flush=True)
-                            upload_ok = True
-                        else:
-                            print("[warn] 文件选择器未触发", file=sys.stderr)
+                            fc_info.value.set_files([img_path])
+                            print(f"[info] 正在上传第 {img_idx+1} 张图片...", flush=True)
+                            _human_delay(page, 8000, 10000)
+                            print(f"[info] 第 {img_idx+1} 张图片已上传", flush=True)
+                            uploaded += 1
 
-                    # 2e: 在抽屉中点击"确定"按钮完成图片上传
-                    if upload_ok:
-                        _human_delay(page, 1500, 2500)
-                        confirmed = page.evaluate("""() => {
-                            const dw = document.querySelector('.byte-drawer-wrapper, [class*="drawer-wrapper"]');
-                            if (!dw) return false;
-                            const btns = dw.querySelectorAll('button');
-                            // 从后往前找"确定"或最后一个可用按钮
-                            for (let i = btns.length - 1; i >= 0; i--) {
-                                const b = btns[i];
-                                if (b.offsetParent === null || b.disabled) continue;
-                                const t = b.textContent.trim();
-                                if (t === '确定' || t === '确认' || t === '完成') {
-                                    b.click(); return true;
-                                }
+                    # e: 在抽屉中点击"确定"按钮完成图片上传
+                    _human_delay(page, 1500, 2500)
+                    page.evaluate("""() => {
+                        const dw = document.querySelector('.byte-drawer-wrapper, [class*="drawer-wrapper"]');
+                        if (!dw) return;
+                        const btns = dw.querySelectorAll('button');
+                        for (let i = btns.length - 1; i >= 0; i--) {
+                            const b = btns[i];
+                            if (b.offsetParent === null || b.disabled) continue;
+                            const t = b.textContent.trim();
+                            if (t === '确定' || t === '确认' || t === '完成') {
+                                b.click(); return;
                             }
-                            // 兜底：最后一个非空按钮
-                            for (let i = btns.length - 1; i >= 0; i--) {
-                                const b = btns[i];
-                                if (b.offsetParent !== null && !b.disabled && b.textContent.trim()) {
-                                    b.click(); return true;
-                                }
+                        }
+                        for (let i = btns.length - 1; i >= 0; i--) {
+                            const b = btns[i];
+                            if (b.offsetParent !== null && !b.disabled && b.textContent.trim()) {
+                                b.click(); return;
                             }
-                            return false;
-                        }""")
-                        print(f"[info] 确定按钮点击: {'成功' if confirmed else '未找到'}", flush=True)
-                        _human_delay(page, 1000, 2000)
+                        }
+                    }""")
+                    print("[info] 确定按钮已点击", flush=True)
+                    _human_delay(page, 1000, 2000)
 
                     # 关闭上传抽屉
                     _dismiss_drawer(page)
+                    _human_delay(page, 2000, 3000)
 
                 except Exception as e:
-                    print(f"[warn] 图片上传失败: {e}", file=sys.stderr)
+                    print(f"[warn] 第 {img_idx+1} 张图片上传失败: {e}", file=sys.stderr)
 
-            if not upload_ok:
-                print("[warn] 所有上传方法均失败", file=sys.stderr)
-
-            _human_delay(page, 3000, 5000)
+            print(f"[info] 图片上传完成: {uploaded}/{image_count} 张", flush=True)
 
         # ── 步骤5: 填写标题 ───────────────────────────────────────────────
         _dismiss_drawer(page)
-        _human_delay(page, 500, 1000)
+        # 强制移除所有遮罩残留，确保标题输入框可交互
+        page.evaluate("""() => {
+            document.querySelectorAll('.byte-drawer-mask, .byte-drawer-wrapper, [class*="overlay"], [class*="modal-backdrop"]')
+                .forEach(el => el.remove());
+        }""")
+        _human_delay(page, 1000, 1500)
+
         title_input = page.locator("textarea[placeholder*='标题'], textarea[placeholder*='title']").first
         if title_input.count() == 0:
             title_input = page.locator("textarea").first
 
         if title_input.count() > 0:
-            title_input.click(force=True)
-            _human_delay(page, 300, 600)
-            title_input.fill("")
-            _human_delay(page, 100, 200)
-            title_input.fill(title)
+            try:
+                title_input.click(force=True)
+                _human_delay(page, 300, 600)
+                title_input.fill("")
+                _human_delay(page, 100, 200)
+                title_input.fill(title)
+            except Exception as e:
+                print(f"[warn] 标题 fill 异常（将使用 JS 兜底）: {e}", flush=True)
+
             # 验证标题是否写入成功
             title_val = page.evaluate("""() => {
                 const ta = document.querySelector('textarea');
                 return ta ? ta.value : '';
             }""")
-            if title_val and len(title_val) > 0:
+            if title_val and len(title_val) >= len(title) * 0.5:
                 print(f"[info] 标题已填写（验证通过）: {title}", flush=True)
             else:
-                print(f"[warn] 标题 fill 后验证为空，尝试 JS 写入", flush=True)
+                print(f"[warn] 标题 fill 后验证不匹配（{repr(title_val)[:60]}），尝试 JS 写入", flush=True)
                 page.evaluate("""(val) => {
                     const ta = document.querySelector('textarea');
-                    if (ta) { ta.value = val; ta.dispatchEvent(new Event('input', { bubbles: true })); }
+                    if (!ta) return;
+                    ta.focus();
+                    // 使用原生 value setter 确保 React 受控组件接收到值变化
+                    try {
+                        const nativeSetter = Object.getOwnPropertyDescriptor(
+                            window.HTMLTextAreaElement.prototype, 'value'
+                        ).set;
+                        nativeSetter.call(ta, val);
+                    } catch(e) {
+                        ta.value = val;
+                    }
+                    ta.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+                    ta.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
                 }""", title)
+                _human_delay(page, 300, 500)
+                # 再次验证
+                title_val2 = page.evaluate("""() => {
+                    const ta = document.querySelector('textarea');
+                    return ta ? ta.value : '';
+                }""")
+                print(f"[info] JS 写入后标题验证: {repr(title_val2)[:60]}", flush=True)
         else:
             print("[warn] 未找到标题输入框", file=sys.stderr)
 
         # ── 步骤6: 填写正文 ────────────────────────────────────────────
+        _dismiss_drawer(page)
         _human_delay(page, 500, 1000)
         # 找 contenteditable 编辑器（不要用 textarea，会匹配到标题）
         article_written = False
@@ -686,15 +714,15 @@ def _execute_publish_actions(page, draft: dict) -> dict:
                 pass
 
         if not article_written:
-            # 兜底2: 直接 JS 设置 textContent
-            print("[info] 尝试 JS textContent 写入正文", flush=True)
+            # 兜底2: 直接 JS 设置 innerText（比 textContent 更接近用户输入行为）
+            print("[info] 尝试 JS innerText 写入正文", flush=True)
             page.evaluate("""(content) => {
                 const el = document.querySelector('[contenteditable], .ProseMirror');
                 if (!el) return false;
                 el.focus();
-                el.textContent = content;
-                el.dispatchEvent(new Event('input', { bubbles: true }));
-                el.dispatchEvent(new Event('change', { bubbles: true }));
+                el.innerText = content;
+                el.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+                el.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
                 return true;
             }""", full_article)
             _human_delay(page, 500, 1000)
@@ -702,7 +730,7 @@ def _execute_publish_actions(page, draft: dict) -> dict:
                 const el = document.querySelector('[contenteditable], .ProseMirror');
                 return el ? (el.textContent || '').length : 0;
             }""")
-            print(f"[info] JS textContent 写入后验证: {written_len}字", flush=True)
+            print(f"[info] JS innerText 写入后验证: {written_len}字", flush=True)
             if written_len >= len(full_article) * 0.3:
                 article_written = True
 

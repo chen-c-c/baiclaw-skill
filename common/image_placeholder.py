@@ -50,7 +50,7 @@ def download_image(url: str, save_dir: Path, timeout: int = 15) -> Optional[str]
 
 
 def batch_upload_images(local_paths: list[str], device_id: str, token: str, base_url: str) -> list[dict]:
-    """批量上传图片到后端 POST /api/image/upload/batch。
+    """批量上传图片到后端 POST /image/upload/batch。
 
     返回: [{"imageId": "img_xxx", "imageUrl": "https://..."}, ...]
     失败时返回空列表（单张失败不影响其他图片上传逻辑）。
@@ -70,7 +70,7 @@ def batch_upload_images(local_paths: list[str], device_id: str, token: str, base
         return []
 
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
-    api_url = f"{base_url.rstrip('/')}/api/image/upload/batch"
+    api_url = f"{base_url.rstrip('/')}/image/upload/batch"
 
     print(f"  [image] 批量上传 {len(images_payload)} 张图片: POST {api_url}", flush=True)
     try:
@@ -104,7 +104,7 @@ def upload_image(local_path: str, device_id: str, token: str, base_url: str) -> 
     payload = {"fileName": p.name, "data": data}
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
 
-    api_url = f"{base_url.rstrip('/')}/api/image/upload"
+    api_url = f"{base_url.rstrip('/')}/image/upload"
     try:
         resp = requests.post(api_url, json=payload, headers=headers, timeout=30)
         if resp.status_code == 200:

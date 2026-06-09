@@ -40,8 +40,14 @@ def _e(text: str, max_len: int = 0) -> str:
 
 
 def _build_cover_html(title: str, brand: str, industry: str) -> str:
-    """封面：深色渐变背景 + 标题 + 品牌标签"""
-    title_size = "36px" if len(title) > 24 else "44px"
+    """封面：深色渐变背景 + 大标题（占画面70%+）"""
+    if len(title) > 20:
+        title_size = "72px"
+    elif len(title) > 10:
+        title_size = "88px"
+    else:
+        title_size = "100px"
+    line_h = "1.25"
     label = f"{brand} · {industry}" if industry else brand
     return f"""<!DOCTYPE html>
 <html><head><meta charset="utf-8"><style>
@@ -50,7 +56,7 @@ html,body {{ width:{W}px; height:{H}px; overflow:hidden; font-family:{FONT}; }}
 .wrap {{
   width:{W}px; height:{H}px;
   background:linear-gradient(135deg,#0A0F1E 0%,#0D1B4B 45%,#0A1628 100%);
-  position:relative; overflow:hidden; padding:60px 75px; color:white;
+  position:relative; overflow:hidden; padding:80px 90px; color:white;
   display:flex; flex-direction:column; justify-content:center;
 }}
 .wrap::before {{
@@ -63,21 +69,21 @@ html,body {{ width:{W}px; height:{H}px; overflow:hidden; font-family:{FONT}; }}
   width:225px; height:225px; border-radius:50%;
   background:radial-gradient(circle,rgba(0,132,255,0.15) 0%,transparent 70%);
 }}
-.eyebrow {{ font-size:18px; color:rgba(255,255,255,0.60); letter-spacing:1px; margin-bottom:24px; position:relative; z-index:1; }}
-.title {{ font-size:{title_size}; font-weight:900; color:#FFFFFF; line-height:1.35; letter-spacing:-0.5px; max-width:700px; position:relative; z-index:1; }}
-.deco {{ position:absolute; top:60px; right:60px; width:3px; height:90px; background:rgba(0,132,255,0.60); border-radius:2px; z-index:1; }}
-.wm {{ position:absolute; bottom:24px; right:45px; font-size:16px; color:rgba(255,255,255,0.35); letter-spacing:1px; z-index:1; }}
+.eyebrow {{ font-size:28px; color:rgba(255,255,255,0.60); letter-spacing:2px; margin-bottom:20px; position:relative; z-index:1; }}
+.title {{ font-size:{title_size}; font-weight:900; color:#FFFFFF; line-height:{line_h}; letter-spacing:-0.5px; max-width:1700px; position:relative; z-index:1; word-break:break-word; }}
+.deco {{ position:absolute; top:60px; right:60px; width:4px; height:120px; background:rgba(0,132,255,0.60); border-radius:2px; z-index:1; }}
+.wm {{ position:absolute; bottom:28px; right:50px; font-size:18px; color:rgba(255,255,255,0.35); letter-spacing:1px; z-index:1; }}
 </style></head><body>
 <div class="wrap">
   <div class="deco"></div>
   <div class="eyebrow">{_e(label)}</div>
-  <div class="title">{_e(title, 60)}</div>
+  <div class="title">{_e(title, 80)}</div>
   <div class="wm">{_e(brand)}</div>
 </div></body></html>"""
 
 
 def _build_content_html(text: str, index: int, brand: str, industry: str) -> str:
-    """内容配图：不同背景色，展示正文节选"""
+    """内容配图：大号正文节选（占画面 70%+）"""
     colors = [
         ("#0F1A2E", "#1A2D4A", "#0F1A2E"),  # 深蓝
         ("#1A120A", "#2D1A0A", "#1A120A"),  # 暖棕
@@ -93,7 +99,7 @@ html,body {{ width:{W}px; height:{H}px; overflow:hidden; font-family:{FONT}; }}
 .wrap {{
   width:{W}px; height:{H}px;
   background:linear-gradient(135deg,{c1} 0%,{c2} 45%,{c3} 100%);
-  position:relative; overflow:hidden; padding:45px 60px; color:white;
+  position:relative; overflow:hidden; padding:70px 80px; color:white;
   display:flex; flex-direction:column; justify-content:center;
 }}
 .wrap::before {{
@@ -101,15 +107,15 @@ html,body {{ width:{W}px; height:{H}px; overflow:hidden; font-family:{FONT}; }}
   width:210px; height:210px; border-radius:50%;
   background:radial-gradient(circle,rgba(22,192,254,0.18) 0%,transparent 65%);
 }}
-.eyebrow {{ font-size:16px; color:{CYAN}; letter-spacing:1px; margin-bottom:16px; position:relative; z-index:1; }}
-.text {{ font-size:24px; font-weight:700; line-height:1.6; color:rgba(255,255,255,0.92);
-         max-width:750px; position:relative; z-index:1; }}
-.dot {{ color:{CYAN}; }}
-.wm {{ position:absolute; bottom:24px; right:45px; font-size:14px; color:rgba(255,255,255,0.30); z-index:1; }}
+.eyebrow {{ font-size:24px; color:{CYAN}; letter-spacing:2px; margin-bottom:20px; position:relative; z-index:1; }}
+.text {{ font-size:52px; font-weight:700; line-height:1.45; color:rgba(255,255,255,0.92);
+         max-width:1700px; position:relative; z-index:1; word-break:break-word; }}
+.dot {{ color:{CYAN}; font-size:52px; }}
+.wm {{ position:absolute; bottom:28px; right:50px; font-size:16px; color:rgba(255,255,255,0.30); z-index:1; }}
 </style></head><body>
 <div class="wrap">
   <div class="eyebrow">{_e(label)} — {subtitle}</div>
-  <div class="text">{_e(text, 180)}<span class="dot">。</span></div>
+  <div class="text">{_e(text, 200)}<span class="dot">。</span></div>
   <div class="wm">{_e(brand)}</div>
 </div></body></html>"""
 
