@@ -24,9 +24,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "common"))
 from enterprise_db import get_enterprise_data, get_first_brand
 
-# 升级尺寸：3840×2160 CSS 像素，2x DPR 输出 7680×4320 实际像素
-W = 3840
-H = 2160
+# 1920×1080 CSS 像素，1x DPR → 输出 1920×1080 实际像素，JPEG quality 控制体积
+W = 1920
+H = 1080
 FONT = "'PingFang SC','Source Han Sans SC','Noto Sans SC',sans-serif"
 CYAN = "#16C0FE"
 BLUE = "#0078E9"
@@ -41,7 +41,7 @@ def _e(text: str, max_len: int = 0) -> str:
 
 def _build_cover_html(title: str, brand: str, industry: str) -> str:
     """封面：深色渐变背景 + 标题 + 品牌标签"""
-    title_size = "62px" if len(title) > 24 else "76px"
+    title_size = "36px" if len(title) > 24 else "44px"
     label = f"{brand} · {industry}" if industry else brand
     return f"""<!DOCTYPE html>
 <html><head><meta charset="utf-8"><style>
@@ -50,23 +50,23 @@ html,body {{ width:{W}px; height:{H}px; overflow:hidden; font-family:{FONT}; }}
 .wrap {{
   width:{W}px; height:{H}px;
   background:linear-gradient(135deg,#0A0F1E 0%,#0D1B4B 45%,#0A1628 100%);
-  position:relative; overflow:hidden; padding:120px 150px; color:white;
+  position:relative; overflow:hidden; padding:60px 75px; color:white;
   display:flex; flex-direction:column; justify-content:center;
 }}
 .wrap::before {{
-  content:''; position:absolute; top:-150px; right:-150px;
-  width:630px; height:630px; border-radius:50%;
+  content:''; position:absolute; top:-75px; right:-75px;
+  width:315px; height:315px; border-radius:50%;
   background:radial-gradient(circle,rgba(0,132,255,0.30) 0%,transparent 70%);
 }}
 .wrap::after {{
-  content:''; position:absolute; bottom:-180px; left:150px;
-  width:450px; height:450px; border-radius:50%;
+  content:''; position:absolute; bottom:-90px; left:75px;
+  width:225px; height:225px; border-radius:50%;
   background:radial-gradient(circle,rgba(0,132,255,0.15) 0%,transparent 70%);
 }}
-.eyebrow {{ font-size:28px; color:rgba(255,255,255,0.60); letter-spacing:1px; margin-bottom:48px; position:relative; z-index:1; }}
-.title {{ font-size:{title_size}; font-weight:900; color:#FFFFFF; line-height:1.35; letter-spacing:-0.5px; max-width:1400px; position:relative; z-index:1; }}
-.deco {{ position:absolute; top:120px; right:120px; width:4px; height:180px; background:rgba(0,132,255,0.60); border-radius:2px; z-index:1; }}
-.wm {{ position:absolute; bottom:48px; right:90px; font-size:24px; color:rgba(255,255,255,0.35); letter-spacing:1px; z-index:1; }}
+.eyebrow {{ font-size:18px; color:rgba(255,255,255,0.60); letter-spacing:1px; margin-bottom:24px; position:relative; z-index:1; }}
+.title {{ font-size:{title_size}; font-weight:900; color:#FFFFFF; line-height:1.35; letter-spacing:-0.5px; max-width:700px; position:relative; z-index:1; }}
+.deco {{ position:absolute; top:60px; right:60px; width:3px; height:90px; background:rgba(0,132,255,0.60); border-radius:2px; z-index:1; }}
+.wm {{ position:absolute; bottom:24px; right:45px; font-size:16px; color:rgba(255,255,255,0.35); letter-spacing:1px; z-index:1; }}
 </style></head><body>
 <div class="wrap">
   <div class="deco"></div>
@@ -93,19 +93,19 @@ html,body {{ width:{W}px; height:{H}px; overflow:hidden; font-family:{FONT}; }}
 .wrap {{
   width:{W}px; height:{H}px;
   background:linear-gradient(135deg,{c1} 0%,{c2} 45%,{c3} 100%);
-  position:relative; overflow:hidden; padding:90px 120px; color:white;
+  position:relative; overflow:hidden; padding:45px 60px; color:white;
   display:flex; flex-direction:column; justify-content:center;
 }}
 .wrap::before {{
-  content:''; position:absolute; top:-120px; left:-90px;
-  width:420px; height:420px; border-radius:50%;
+  content:''; position:absolute; top:-60px; left:-45px;
+  width:210px; height:210px; border-radius:50%;
   background:radial-gradient(circle,rgba(22,192,254,0.18) 0%,transparent 65%);
 }}
-.eyebrow {{ font-size:24px; color:{CYAN}; letter-spacing:2px; margin-bottom:32px; position:relative; z-index:1; }}
-.text {{ font-size:40px; font-weight:700; line-height:1.6; color:rgba(255,255,255,0.92);
-         max-width:1500px; position:relative; z-index:1; }}
+.eyebrow {{ font-size:16px; color:{CYAN}; letter-spacing:1px; margin-bottom:16px; position:relative; z-index:1; }}
+.text {{ font-size:24px; font-weight:700; line-height:1.6; color:rgba(255,255,255,0.92);
+         max-width:750px; position:relative; z-index:1; }}
 .dot {{ color:{CYAN}; }}
-.wm {{ position:absolute; bottom:48px; right:90px; font-size:20px; color:rgba(255,255,255,0.30); z-index:1; }}
+.wm {{ position:absolute; bottom:24px; right:45px; font-size:14px; color:rgba(255,255,255,0.30); z-index:1; }}
 </style></head><body>
 <div class="wrap">
   <div class="eyebrow">{_e(label)} — {subtitle}</div>
@@ -152,17 +152,17 @@ def render_draft(draft_path: str, headless: bool = True) -> list[str]:
     images = []
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=headless)
-        page = browser.new_page(viewport={"width": W, "height": H}, device_scale_factor=2)
+        page = browser.new_page(viewport={"width": W, "height": H})
 
         for name, html_str in specs:
             html_path = out_dir / f"_{name}.html"
             html_path.write_text(html_str, encoding="utf-8")
             page.goto(f"file:///{html_path.resolve().as_posix()}", wait_until="load", timeout=20_000)
             page.wait_for_timeout(500)
-            png_path = str(out_dir / f"{name}.png")
-            page.screenshot(path=png_path, clip={"x": 0, "y": 0, "width": W, "height": H})
-            images.append(png_path)
-            print(f"[render_cover] 图片已生成: {png_path}", flush=True)
+            jpg_path = str(out_dir / f"{name}.jpg")
+            page.screenshot(path=jpg_path, clip={"x": 0, "y": 0, "width": W, "height": H}, type="jpeg", quality=80)
+            images.append(jpg_path)
+            print(f"[render_cover] 图片已生成: {jpg_path}", flush=True)
 
         browser.close()
 
