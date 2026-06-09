@@ -87,9 +87,41 @@ def build_content_brief(brand_info: dict, topics: dict) -> str:
     )
 
 
-def call_llm(instruction: str) -> dict:
-    from llm import call_llm_json
-    draft = call_llm_json(instruction, max_tokens=1024)
+def _call_agent_api(prompt: str, agent_url: str = None) -> dict:
+    """调用 Agent API（/chat）生成文章，和前端 agent-web 对话同一方式。
+
+    由 agent.exe 根据 config.yaml 的 provider 路由处理 LLM 调用，
+    无需本脚本处理任何 API Key。
+    """
+    import requests
+    base_url = (agent_url or os.environ.get("BAICLAW_AGENT_API_URL")
+                or "http://localhost:8080/api")
+    api_url = f"{base_url.rstrip('/')}/chat"
+    print(f"[generate] 调用 Agent API: {api_url}", flush=True)
+
+    resp = requests.post(
+        api_url,
+        json={"message": prompt},
+        timeout=180,
+    )
+    resp.raise_for_status()
+    result = resp.json()  # {"message": "...", "session_id": "..."}
+
+    raw_message = result.get("message", "")
+    # 预处理：修复 LLM 常见的 JSON 格式问题
+    cleaned = raw_message.strip()
+    m = re.search(r"```(?:json)?\s*([\s\S]+?)```", cleaned)
+    if m:
+        cleaned = m.group(1).strip()
+    # 修复 # 在引号外 (#"topic" -> "#topic")
+    cleaned = re.sub(r'(?<=[,\[])\s*#\s*"', '"#', cleaned)
+    cleaned = re.sub(r',\s*]', ']', cleaned)
+    cleaned = re.sub(r',\s*}', '}', cleaned)
+    try:
+        draft = json.loads(cleaned)
+    except json.JSONDecodeError:
+        raise RuntimeError(f"Agent 返回内容无法解析为 JSON:\n{raw_message}")
+
     if "description" in draft and "article" not in draft:
         draft["article"] = draft.pop("description")
     draft["platform"] = "toutiao"
@@ -161,6 +193,7 @@ def _build_image_prompts(draft: dict, brand_info: dict) -> list[str]:
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--topics-json", default=None, help="collect 输出的 topics JSON（省略时自动采集）")
+    parser.add_argument("--agent-url", default=None, help="Agent API 地址（默认 http://localhost:8080/api）")
     args, _ = parser.parse_known_args()
 
     args.image_count = 3
@@ -197,35 +230,38 @@ def main():
         json.dump({"instruction": instruction}, f, ensure_ascii=False, indent=2)
     print(f"[generate] brief written: {brief_path}", flush=True)
 
-    draft = call_llm(instruction)
+    draft = _call_agent_api(instruction, agent_url=args.agent_url)
 
     with open(args.output, "w", encoding="utf-8") as f:
         json.dump(draft, f, ensure_ascii=False, indent=2)
     print(f"[generate] draft written: {args.output}", flush=True)
 
-    # AI 生成图片（头条风格，封面根据标题，其余根据正文）
-    print("[generate] AI 生成图片...", flush=True)
-    api_key = os.environ.get("ARK_API_KEY")
-    if not api_key:
-        raise RuntimeError("缺少 ARK_API_KEY 环境变量（火山引擎 Seedream 图片生成需要）")
-
-    image_prompts = _build_image_prompts(draft, brand_info)
-    image_paths = []
-    for i, prompt in enumerate(image_prompts[:args.image_count]):
-        img_name = f"0{i+1}_{['cover','content_1','content_2'][i]}.png"
-        img_path = str(run_dir / img_name)
-        print(f"[generate] 生成图片 {i+1}/{args.image_count}: {img_name}", flush=True)
-        generate_ai_image(prompt, img_path, api_key)
-        image_paths.append(img_path)
-
-    draft["images"] = image_paths
-    with open(args.output, "w", encoding="utf-8") as f:
-        json.dump(draft, f, ensure_ascii=False, indent=2)
+    # 渲染图片：优先使用 AI 生成，无 ARK_API_KEY 时回退到 Playwright 截图
+    ark_key = os.environ.get("ARK_API_KEY")
+    if ark_key:
+        print("[generate] AI 生成图片...", flush=True)
+        image_prompts = _build_image_prompts(draft, brand_info)
+        image_paths = []
+        for i, prompt in enumerate(image_prompts[:args.image_count]):
+            img_name = f"0{i+1}_{['cover','content_1','content_2'][i]}.png"
+            img_path = str(run_dir / img_name)
+            print(f"[generate] 生成图片 {i+1}/{args.image_count}: {img_name}", flush=True)
+            generate_ai_image(prompt, img_path, ark_key)
+            image_paths.append(img_path)
+        draft["images"] = image_paths
+        with open(args.output, "w", encoding="utf-8") as f:
+            json.dump(draft, f, ensure_ascii=False, indent=2)
+    else:
+        print("[generate] 使用 Playwright 截图生成图片（无 ARK_API_KEY 时回退）", flush=True)
+        sys.path.insert(0, str(Path(__file__).parent))
+        from render_cover import render_draft
+        render_draft(args.output)
 
     # 提交审核
     print("[generate] 提交审核...", flush=True)
+    sys.path.insert(0, str(Path(__file__).parent))
     import submit_for_review as _sfr
-    review_id = _sfr.submit_draft("toutiao", args.output)
+    review_id = _sfr.submit_draft(args.output)
 
     # 重新读取 draft.json 获取最终使用的图片数量（可能已被截断）
     with open(args.output, "r", encoding="utf-8") as _f:
