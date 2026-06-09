@@ -334,19 +334,23 @@ def _click_publish_button(page) -> dict:
         if not confirmed:
             print("[warn] 未找到确认发布按钮", file=sys.stderr)
 
-        # 检查结果：URL 是否脱离了发布页，或页面是否有成功提示
-        current_url = page.url
-        if "/publish" not in current_url:
-            print(f"[info] 发布成功，URL 已离开发布页: {current_url}", flush=True)
-            return {"success": True, "publishedUrl": current_url}
+        # 等待发布结果：URL 导航离开 /publish 或页面出现成功提示
+        try:
+            page.wait_for_url(lambda u: "/publish" not in u, timeout=30_000)
+            print(f"[info] 发布成功，URL 已离开发布页: {page.url}", flush=True)
+            return {"success": True, "publishedUrl": page.url}
+        except Exception:
+            pass
 
-        success_text = page.evaluate("""() => {
-            const t = document.body.innerText;
-            return t.includes('发布成功') || t.includes('提交成功') || t.includes('审核中');
-        }""")
-        if success_text:
+        try:
+            page.wait_for_function("""() => {
+                const t = document.body.innerText;
+                return t.includes('发布成功') || t.includes('提交成功') || t.includes('审核中');
+            }""", timeout=15_000)
             print("[info] 检测到发布成功提示", flush=True)
-            return {"success": True, "publishedUrl": current_url}
+            return {"success": True, "publishedUrl": page.url}
+        except Exception:
+            pass
 
         print(f"[info] 发布未完成，准备重试（第{retry+1}次）", flush=True)
 
@@ -879,7 +883,7 @@ def _save_cookies_to_admin(account_id: str, cookies_list: list):
         account = get_toutiao_account(data) if data else {}
         import requests
         cookie_json = json.dumps(cookies_list, ensure_ascii=False)
-        url = f"{admin_url}/api/device/publish-accounts/{account_id}/cookie"
+        url = f"{admin_url}/device/publish-accounts/{account_id}/cookie"
         resp = requests.patch(
             url,
             json={
