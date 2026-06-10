@@ -13,6 +13,8 @@ import sys
 import tempfile
 from pathlib import Path
 
+import requests
+
 _SKILLS_ROOT = Path(__file__).parent.parent.parent  # SKILLs/
 sys.path.insert(0, str(_SKILLS_ROOT / "common"))
 
@@ -75,14 +77,43 @@ def build_content_brief(brand_info: dict, topics: dict) -> str:
     )
 
 
-def call_llm(instruction: str) -> dict:
-    from llm import call_llm_json
-    draft = call_llm_json(instruction, max_tokens=4096)
+def _call_agent_api(prompt: str, agent_url: str = None) -> dict:
+    """调用 agent.exe 的 /chat 接口生成文章（和前端 agent-web 对话同一方式）。
+
+    由 agent.exe 根据 config.yaml 的 provider 路由处理 LLM 调用，
+    无需本脚本处理任何 API Key。
+    """
+    base_url = (agent_url or os.environ.get("BAICLAW_AGENT_API_URL")
+                or "http://localhost:8080/api")
+    api_url = f"{base_url.rstrip('/')}/chat"
+    print(f"[generate] 调用 Agent API: {api_url}", flush=True)
+
+    resp = requests.post(
+        api_url,
+        json={"message": prompt},
+        timeout=180,
+    )
+    resp.raise_for_status()
+    result = resp.json()  # {"message": "...", "session_id": "..."}
+
+    raw_message = result.get("message", "")
+    try:
+        draft = json.loads(raw_message)
+    except json.JSONDecodeError:
+        import re
+        m = re.search(r"```(?:json)?\s*([\s\S]+?)```", raw_message)
+        if m:
+            draft = json.loads(m.group(1).strip())
+        else:
+            raise RuntimeError(f"Agent 返回内容无法解析为 JSON:\n{raw_message}")
+
     if "description" in draft and "article" not in draft:
         draft["article"] = draft.pop("description")
+
     article = draft.get("article", "")
     if len(article) < 800:
         raise RuntimeError(f"LLM 生成文章过短（{len(article)}字，要求≥800字），请重试")
+
     draft["platform"] = "zhihu"
     draft.setdefault("images", [])
     return draft
@@ -124,7 +155,7 @@ def main():
         json.dump({"instruction": instruction}, f, ensure_ascii=False, indent=2)
     print(f"[generate] brief written: {brief_path}", flush=True)
 
-    draft = call_llm(instruction)
+    draft = _call_agent_api(instruction)
 
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(draft, f, ensure_ascii=False, indent=2)

@@ -121,6 +121,30 @@ def parse_cookie_string(cookie_str: str) -> list[dict]:
 
 # ── 内部工具函数 ───────────────────────────────────────────────────────────────
 
+_DEBUG_DIR: Path | None = None
+
+
+def _ensure_debug_dir() -> Path:
+    global _DEBUG_DIR
+    if _DEBUG_DIR is None:
+        appdata = os.environ.get("APPDATA") or str(Path.home())
+        _DEBUG_DIR = Path(appdata) / "BaiClaw" / "debug" / "zhihu"
+        _DEBUG_DIR.mkdir(parents=True, exist_ok=True)
+    return _DEBUG_DIR
+
+
+def _debug_screenshot(page, label: str):
+    """按环境变量 ZHIHU_PUBLISH_DEBUG 控制，失败时自动截图。"""
+    if not os.environ.get("ZHIHU_PUBLISH_DEBUG"):
+        return
+    d = _ensure_debug_dir()
+    path = d / f"{label}.png"
+    try:
+        page.screenshot(path=str(path))
+        print(f"[debug] 截图: {path}", flush=True)
+    except Exception:
+        pass
+
 
 def _human_delay(page, min_ms: int = 500, max_ms: int = 1500):
     page.wait_for_timeout(min_ms + random.randint(0, max_ms - min_ms))
@@ -189,6 +213,7 @@ def _run_publish_steps(page, draft: dict) -> dict:
 
         # ── 步骤1: 导航到知乎首页验证登录 ──────────────────────────────
         page.goto(CHECK_URL, wait_until="load", timeout=60_000)
+        _debug_screenshot(page, "01_check_url")
         print(f"[info] 当前 URL: {page.url}", flush=True)
 
         if not _is_logged_in(page):
@@ -201,6 +226,7 @@ def _run_publish_steps(page, draft: dict) -> dict:
         _human_delay(page, 800, 1500)
         page.goto(WRITE_URL, wait_until="networkidle", timeout=30_000)
         _human_delay(page, 1500, 2500)
+        _debug_screenshot(page, "02_write_page")
         print(f"[info] 编辑页 URL: {page.url}", flush=True)
 
         # ── 步骤3: 填写标题（fill 触发 React 更新）────────────────────
@@ -239,44 +265,68 @@ def _run_publish_steps(page, draft: dict) -> dict:
 
         # ── 步骤6: 点击「发布」按钮 ──────────────────────────────────
         _human_delay(page, 800, 1500)
+        _debug_screenshot(page, "before_publish_click")
         publish_btn = page.locator("button.Button--primary.Button--blue").filter(has_text="发布")
         publish_btn.first.wait_for(state="visible", timeout=15_000)
         publish_btn.first.scroll_into_view_if_needed()
         _human_delay(page, 300, 600)
         publish_btn.first.click()
         print("[info] 已点击「发布」按钮", flush=True)
+        _debug_screenshot(page, "after_publish_click")
 
         # ── 步骤7: 等待发布完成 ──────────────────────────────────────
         published_url = ""
         success = False
 
-        # 检测发布成功提示（.css-t5fqv4）
+        # 检测1: 页面导航离开 /write 或 /edit，且 URL 包含 ?just_published=1
+        # （注意：填写正文时知乎会自动保存草稿，URL 会变成 /p/{id}/edit，
+        #  所以单纯检测 /p/ 不够，必须排除 /edit 或检测 ?just_published=1）
         try:
-            page.wait_for_selector(".css-t5fqv4", timeout=10_000)
+            page.wait_for_url(
+                lambda url: "zhuanlan.zhihu.com/p/" in url and "/edit" not in url,
+                timeout=PUBLISH_TIMEOUT_MS,
+            )
+            published_url = page.url
             success = True
-            print("[info] 检测到发布成功提示", flush=True)
+            print(f"[info] 页面已跳转到文章页: {published_url}", flush=True)
         except Exception:
             pass
 
-        # 兜底：URL 变为文章详情页
+        # 检测2: 页面出现「文章发布成功」文本
         if not success:
             try:
-                page.wait_for_url(
-                    lambda url: "zhuanlan.zhihu.com/p/" in url,
-                    timeout=PUBLISH_TIMEOUT_MS,
+                page.wait_for_function(
+                    "() => document.body.innerText.includes('文章发布成功')",
+                    timeout=10_000,
                 )
                 success = True
-                print(f"[info] 页面已跳转到文章页: {page.url}", flush=True)
+                published_url = page.url
+                print("[info] 检测到「文章发布成功」提示", flush=True)
+            except Exception:
+                pass
+
+        # 检测3: URL 中包含 ?just_published=1（此时可能还停留在 edit 页面但发布已完成）
+        if not success:
+            try:
+                page.wait_for_function(
+                    "() => window.location.href.includes('just_published=1')",
+                    timeout=10_000,
+                )
+                success = True
+                published_url = page.url
+                print("[info] 检测到 just_published=1 标记", flush=True)
             except Exception:
                 pass
 
         if success:
-            published_url = page.url
             return {"success": True, "publishedUrl": published_url}
 
+        # 失败时截图
+        _debug_screenshot(page, "publish_timeout")
         return {"success": False, "error": "发布超时，请在管理后台手动确认"}
 
     except Exception as e:
+        _debug_screenshot(page, "publish_error")
         return {"success": False, "error": str(e), "cookieExpired": False}
 
 
@@ -363,8 +413,12 @@ def main():
     parser.add_argument("--draft-json",  required=True, help="draft JSON 文件路径")
     parser.add_argument("--account-id",  default="",    help="知乎账号 ID（可选，自动从企业信息获取）")
     parser.add_argument("--headless",    default="true", choices=["true", "false"], help="是否无头浏览器")
+    parser.add_argument("--debug",       action="store_true", help="启用调试截图")
     args = parser.parse_args()
     headless = args.headless.lower() == "true"
+
+    if args.debug:
+        os.environ["ZHIHU_PUBLISH_DEBUG"] = "1"
 
     if not args.account_id:
         try:

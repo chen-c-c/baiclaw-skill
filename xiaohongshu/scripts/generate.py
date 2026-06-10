@@ -14,6 +14,8 @@ from pathlib import Path
 
 import sys
 
+import requests
+
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "common"))
 from enterprise_db import get_enterprise_data, get_first_brand
 
@@ -61,7 +63,7 @@ def build_content_brief(brand_info: dict, topics: dict) -> str:
         "   - 开头：用热点或痛点引发共鸣（1-2句）\n"
         f"   - 中间：讲故事或列干货，自然融入品牌（{brand_name}）的功能和价值\n"
         "   - 结尾：引导互动（提问或鼓励评论）\n"
-        "3. 【标签】7-10 个话题标签（#开头），采用【金字塔结构】分层，核心原则：\n”
+        "3. 【标签】7-10 个话题标签（#开头），采用【金字塔结构】分层，核心原则：\n"
         "   【平台热度 × 内容贴合】双权重——不堆砌热门泛标签，精准长尾优先于无关热词\n"
         f"   • 大流量泛标签 1-2个：覆盖【{industry}】赛道，承接平台推荐流量\n"
         "   • 精准垂类标签 2-3个：直接对应文章核心主题和功能关键词\n"
@@ -74,9 +76,38 @@ def build_content_brief(brand_info: dict, topics: dict) -> str:
     )
 
 
-def call_llm(instruction: str) -> dict:
-    from llm import call_llm_json
-    draft = call_llm_json(instruction, max_tokens=2048)
+def _call_agent_api(prompt: str, agent_url: str = None) -> dict:
+    """调用 agent.exe 的 /chat 接口生成文章（和前端 agent-web 对话同一方式）。
+
+    由 agent.exe 根据 config.yaml 的 provider 路由处理 LLM 调用，
+    无需本脚本处理任何 API Key。
+    """
+    base_url = (agent_url or os.environ.get("BAICLAW_AGENT_API_URL")
+                or "http://localhost:8080/api")
+    api_url = f"{base_url.rstrip('/')}/chat"
+    print(f"[generate] 调用 Agent API: {api_url}", flush=True)
+
+    resp = requests.post(
+        api_url,
+        json={"message": prompt},
+        timeout=180,
+    )
+    resp.raise_for_status()
+    result = resp.json()  # {"message": "...", "session_id": "..."}
+
+    raw_message = result.get("message", "")
+    # 尝试解析返回内容中的 JSON
+    try:
+        draft = json.loads(raw_message)
+    except json.JSONDecodeError:
+        # 如果返回被 markdown 代码块包裹，尝试提取
+        import re
+        m = re.search(r"```(?:json)?\s*([\s\S]+?)```", raw_message)
+        if m:
+            draft = json.loads(m.group(1).strip())
+        else:
+            raise RuntimeError(f"Agent 返回内容无法解析为 JSON:\n{raw_message}")
+
     if "description" in draft and "article" not in draft:
         draft["article"] = draft.pop("description")
     draft.setdefault("images", [])
@@ -125,8 +156,8 @@ def main():
         json.dump({"instruction": instruction}, f, ensure_ascii=False, indent=2)
     print(f"[generate] brief written: {default_brief}", flush=True)
 
-    # 调用 LLM 生成草稿
-    draft = call_llm(instruction)
+    # 调用 Agent API 生成草稿（通过 agent.exe 的 /chat 接口，无需 API Key）
+    draft = _call_agent_api(instruction)
 
     os.makedirs(os.path.dirname(args.output) or ".", exist_ok=True)
     with open(args.output, "w", encoding="utf-8") as f:

@@ -26,19 +26,16 @@ description: |
 ## 环境要求
 
 ```bash
-pip install anthropic openai playwright
+pip install requests playwright
+playwright install chromium
 ```
 
-`generate.py` 自动检测可用模型，无需手动配置 API Key：
-- 有 `LOBSTER_APIKEY_DEEPSEEK` → 调用 DeepSeek（Agent 配置的模型自动注入）
-- 有 `ANTHROPIC_API_KEY` → 调用 Claude
-- 可选 `ANTHROPIC_MODEL` 覆盖 Claude 模型 ID
-- 可选 `BAICLAW_TEMP_DIR` — 临时文件根目录（默认系统 temp）
+> generate.py 通过调用 Agent API（`POST /chat`）生成文章内容，无需 API Key。
+> Agent API 地址由 `BAICLAW_AGENT_API_URL` 环境变量指定，默认 `http://localhost:8080/api`。
 
-## Skill 路径（初始化一次）
+## Skill 路径
 
 ```bash
-export SKILLS_ROOT="${LOBSTERAI_SKILLS_ROOT:-${SKILLS_ROOT:-$HOME/Library/Application Support/LobsterAI/SKILLs}}"
 export XHS_GENERATE_SCRIPT="$SKILLS_ROOT/xiaohongshu/scripts/generate.py"
 export XHS_PUBLISH_SCRIPT="$SKILLS_ROOT/xiaohongshu/scripts/publish.py"
 export XHS_CHECK_PUBLISH_SCRIPT="$SKILLS_ROOT/xiaohongshu/scripts/check_and_publish.py"
@@ -80,25 +77,20 @@ python "$XHS_CHECK_PUBLISH_SCRIPT"
 > 该脚本由 BaiClaw 定时任务触发（cron `*/5 * * * *`），无需 Agent 手动调用。
 > 拉取 status=approved 的文章 → 还原图片和 draft → 调用 publish.py → 回写发布结果。
 
-### Cookie 初始化（首次使用）
+### Cookie 初始化（首次使用 / 已失效）
 
-首次运行时会自动弹出浏览器（即使设置 `--headless true`，首次登录必须可见），请在弹出窗口中完成登录（账号密码或扫码均可），登录成功后脚本自动检测并保存 Cookie。
+Cookie 失效时 publish.py 会自动弹出浏览器窗口让您重新登录，登录后脚本自动保存新 Cookie 并继续发布。
 
-Cookie 保存位置：`%APPDATA%\BaiClaw\cookies\{account-id}.json`（Windows）
+首次运行或 Cookie 过期时弹出的浏览器窗口中请完成账号登录（账号密码或扫码均可），登录成功后脚本自动检测、保存 Cookie 到本地数据库并继续发布。
+
+Cookie 保存位置：`%APPDATA%\BaiClaw\cookies\{account-id}.json`（文件缓存）及本地 SQLite 数据库。
 
 **发布成功返回：**
 ```json
 { "success": true, "publishedUrl": "https://www.xiaohongshu.com/explore/..." }
 ```
 
-**Cookie 失效返回：**
-```json
-{ "success": false, "error": "Cookie 已失效，请重新登录", "cookieExpired": true }
-```
-
-Agent 收到 `cookieExpired: true` 时应：
-1. 通过 IM 推送告警：「小红书账号 Cookie 已失效，请在管理后台更新」
-2. 终止本次定时任务，不重试
+> Agent 无需处理 cookieExpired 场景——publish.py 已在内部自动弹出浏览器等待手工登录并刷新 Cookie。
 
 ---
 

@@ -393,16 +393,22 @@ def _publish_with_cookies(p, cookies: list[dict], draft: dict, headless: bool) -
 
 def _login_then_publish(p, account_id: str, draft: dict) -> dict:
     """弹出浏览器等待手动登录，登录后保存 Cookie 并继续发布"""
-    context = _persistent_context(p, account_id, headless=False)
+    try:
+        context = _persistent_context(p, account_id, headless=False)
+    except Exception as e:
+        return {"success": False, "error": f"浏览器启动失败: {e}", "cookieExpired": True}
+
     page = context.new_page()
     page.add_init_script(_ANTI_BOT_JS)
     try:
+        # 先清除持久 Profile 中对小红书域名的 cookie，确保用户一定看到登录页
+        context.clear_cookies()
         try:
             page.goto(CHECK_URL, wait_until="domcontentloaded", timeout=30_000)
         except Exception:
             pass
 
-        # 快速检测 Profile 是否已有 session（8s）
+        # 检查是否已在登录页
         already = False
         try:
             page.wait_for_function(_LOGIN_CHECK_JS, timeout=8_000)
@@ -411,13 +417,17 @@ def _login_then_publish(p, account_id: str, draft: dict) -> dict:
             pass
 
         if not already:
-            print("[info] 请在浏览器中完成登录（最长 2 分钟）...", flush=True)
+            print("\n============================================", flush=True)
+            print("[info] 小红书 Cookie 已失效，正在打开浏览器窗口", flush=True)
+            print("[info] 请在弹出的浏览器窗口中手动完成登录", flush=True)
+            print("[info] 登录完成后脚本将自动继续发布", flush=True)
+            print("============================================\n", flush=True)
             try:
                 page.wait_for_function(_LOGIN_CHECK_JS, timeout=LOGIN_TIMEOUT_MS)
             except Exception:
-                return {"success": False, "error": "登录超时", "cookieExpired": True}
+                return {"success": False, "error": "登录超时，请重新尝试发布", "cookieExpired": True}
 
-        print("[info] 登录成功，保存 Cookie 缓存...", flush=True)
+        print("[info] 登录成功，保存 Cookie...", flush=True)
         save_cookies_safe(context, account_id)
         return _run_publish_steps(page, draft)
     finally:
@@ -426,7 +436,7 @@ def _login_then_publish(p, account_id: str, draft: dict) -> dict:
 
 def publish(draft: dict, account_id: str, headless: bool = True) -> dict:
     with sync_playwright() as p:
-        # 优先：从 SQLite 读取 cookie 直接注入登录
+        # 优先：从 SQLite 读取 cookie，用 headless 模式验证是否有效
         try:
             sys.path.insert(0, str(Path(__file__).parent.parent.parent / "common"))
             from enterprise_db import get_enterprise_data, get_xhs_cookie
@@ -434,15 +444,15 @@ def publish(draft: dict, account_id: str, headless: bool = True) -> dict:
             cookie_str = get_xhs_cookie(data) if data else None
             if cookie_str:
                 cookies = parse_cookie_string(cookie_str)
-                print(f"[info] 使用 SQLite cookie 登录（{len(cookies)} 条）", flush=True)
-                result = _publish_with_cookies(p, cookies, draft, headless=headless)
+                print(f"[info] 验证 SQLite cookie（{len(cookies)} 条）...", flush=True)
+                result = _publish_with_cookies(p, cookies, draft, headless=True)
                 if not result.get("cookieExpired"):
                     return result
-                print("[warn] SQLite cookie 已失效，回退到手动登录", file=sys.stderr)
+                print("[warn] SQLite cookie 已失效，将打开浏览器让您手动登录", file=sys.stderr)
         except ImportError:
             pass
 
-        # 兜底：弹出浏览器手动登录（持久 Profile）
+        # 弹出浏览器手工登录（持久 Profile，显示窗口）
         return _login_then_publish(p, account_id, draft)
 
 
