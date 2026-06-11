@@ -13,7 +13,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from enterprise_db import get_enterprise_data, get_first_brand
+from enterprise_db import get_enterprise_data, get_first_brand, get_admin_api_url, get_admin_token
 
 
 def _load_dotenv() -> None:
@@ -42,14 +42,46 @@ _load_dotenv()
 _TEMP_BASE = Path(os.environ.get("BAICLAW_TEMP_DIR", tempfile.gettempdir())) / "baiclaw"
 _TEMP_BASE.mkdir(parents=True, exist_ok=True)
 
-_TEMPLATES_DIR = Path(__file__).parent / "templates" / "carousel"
 
+def _fetch_carousel_from_api(platform: str) -> tuple:
+    """从后端 API 获取当前平台激活的轮播模板 (html, schema_dict)。
+    BAICLAW_ADMIN_API_URL 未设置或请求失败时返回 (None, None)。
+    """
+    admin_url = (os.environ.get('BAICLAW_ADMIN_API_URL', '').rstrip('/') or get_admin_api_url()).rstrip('/')
+    token = os.environ.get('BAICLAW_ADMIN_TOKEN', '').strip('"') or get_admin_token() or ''
+    print(f"[render][api] BAICLAW_ADMIN_API_URL={'已设置: '+admin_url if admin_url else '未设置'}", flush=True)
+    print(f"[render][api] BAICLAW_ADMIN_TOKEN={'已设置('+token[:12]+'...)' if token else '未设置'}", flush=True)
+    if not admin_url:
+        print("[render][api] admin_url 为空，跳过 API，直接用本地文件", flush=True)
+        return None, None
+    try:
+        import urllib.request as _ur
+        url = f"{admin_url}/api/device/slide-templates/active-html?platform={platform}"
+        print(f"[render][api] 请求: {url}", flush=True)
+        headers = {'Authorization': f'Bearer {token}'} if token else {}
+        req = _ur.Request(url, headers=headers)
+        with _ur.urlopen(req, timeout=8) as resp:
+            body = json.loads(resp.read().decode('utf-8'))
+        code = body.get('code')
+        data = body.get('data')
+        print(f"[render][api] 响应 code={code}, data={'有数据' if data else 'null'}", flush=True)
+        if code == 200 and data:
+            html = data.get('html') or ''
+            schema_raw = data.get('schema') or ''
+            try:
+                schema = json.loads(schema_raw) if isinstance(schema_raw, str) and schema_raw else schema_raw or {}
+            except Exception:
+                schema = {}
+            if html:
+                print(f"[render][api] 成功: platform={platform}, slug={data.get('slug')}, html={len(html)}字符", flush=True)
+                return html, schema
+            print("[render][api] data 有值但 html 为空，回退本地", flush=True)
+        else:
+            print(f"[render][api] code={code} 或 data=null，回退本地", flush=True)
+    except Exception as e:
+        print(f"[render][warn] API 获取模板失败，回退本地: {e}", flush=True)
+    return None, None
 
-def _load_template(theme: str = "dark-tech") -> str:
-    path = _TEMPLATES_DIR / f"{theme}.html"
-    if not path.exists():
-        path = _TEMPLATES_DIR / "dark-tech.html"
-    return path.read_text(encoding="utf-8")
 
 
 def _extract_content(article: str, title: str, topics: list) -> dict:
@@ -155,14 +187,19 @@ def _generate_cover_bg(run_dir: Path, brand: str, industry: str, title: str = ""
         return None
 
 
-def build_html(draft: dict, brand: str = "", industry: str = "", cover_bg_path: str | None = None, theme: str | None = None) -> str:
+def build_html(draft: dict, brand: str = "", industry: str = "", cover_bg_path: str | None = None) -> str:
     title = draft.get("titles", [""])[0] or draft.get("title", "")
     article = draft.get("article", "")
     topics = draft.get("topics", [])
 
     c = _extract_content(article, title, topics)
-    theme = theme or os.environ.get("BAICLAW_CAROUSEL_THEME", "light-editorial")
-    html = _load_template(theme)
+    platform = draft.get('platform', 'douyin') if isinstance(draft, dict) else 'douyin'
+
+    api_html, api_schema = _fetch_carousel_from_api(platform)
+    if not api_html:
+        raise RuntimeError(f"后端 API 未返回模板 HTML (platform={platform})，请确认 BAICLAW_ADMIN_API_URL 配置正确且后端已启动")
+    html = api_html
+    schema = api_schema if isinstance(api_schema, dict) and api_schema else {'pain_count': 3, 'feat_count': 4}
 
     _label = industry if industry else "内容分享"
     _first = c["hook"].split("。")[0] if c.get("hook") else title
@@ -177,8 +214,10 @@ def build_html(draft: dict, brand: str = "", industry: str = "", cover_bg_path: 
             f"url('file:///{_uri}') center/cover no-repeat !important;}}"
         )
 
-    pain = c["pain_list"]
-    feats = c["features"]
+    pain_count = int(schema.get('pain_count', 3))
+    feat_count = int(schema.get('feat_count', 4))
+    pain = c["pain_list"][:pain_count]
+    feats = c["features"][:feat_count]
     replacements = {
         "{{BRAND}}":       _e(brand, 20),
         "{{INDUSTRY}}":    _e(_label, 12),
@@ -231,8 +270,7 @@ def _run(args) -> list[str]:
     out = Path(args.output_dir)
     out.mkdir(parents=True, exist_ok=True)
 
-    theme = os.environ.get("BAICLAW_CAROUSEL_THEME", "light-editorial")
-    html = build_html(draft, brand, industry, theme=theme)
+    html = build_html(draft, brand, industry)
 
     html_path = out / "_deck.html"
     html_path.write_text(html, encoding="utf-8")

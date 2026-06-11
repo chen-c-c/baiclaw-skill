@@ -105,7 +105,6 @@ def submit_draft(platform: str, draft_path: str) -> str:
             "article":     draft.get("article", ""),
             "topics":      _build_topics(platform, draft),
             "imageData":   json.dumps(image_data, ensure_ascii=False),
-            "draftJson":   json.dumps(draft, ensure_ascii=False),
         },
         headers={"Authorization": f"Bearer {admin_token}"},
         timeout=30,
